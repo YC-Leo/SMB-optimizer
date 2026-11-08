@@ -1,99 +1,120 @@
 # SMB Optimizer Suite
 
-[![CI](https://github.com/YC-Leo/SMB-optimizer/actions/workflows/tests.yml/badge.svg)](https://github.com/YC-Leo/SMB-optimizer/actions/workflows/tests.yml)
+[![tests](https://github.com/YC-Leo/SMB-optimizer/actions/workflows/tests.yml/badge.svg)](https://github.com/YC-Leo/SMB-optimizer/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
-Finds the **best operating conditions** for a **simulated moving bed (SMB)** chromatography unit: the zone flows, port flows and switch time that give the most feed throughput, or the least desorbent use, while the extract and raffinate meet their purity and recovery specifications.
+An open-source optimizer that finds the flow rates and switch time of a **simulated moving bed (SMB)** chromatography unit that give the most feed throughput, or use the least desorbent, while the products meet their purity and recovery targets.
 
-Every candidate operating point is simulated with the full SMB model to cyclic steady state, so the optimum respects mass transfer, axial dispersion, competitive adsorption and density-driven volume change, not just equilibrium theory. It runs on an ordinary laptop with Python, NumPy and SciPy; no commercial solver, licence or sparse linear-algebra library is needed.
+You describe the unit, the flows the optimizer may change, the objective and the limits. The optimizer then searches for the best operating point. Every candidate point is simulated to cyclic steady state with the full SMB model, so the optimum accounts for mass transfer, axial dispersion, competitive adsorption and density-driven volume change, not just equilibrium theory. At the optimum it reports which limits are binding and what relaxing each one would be worth.
 
-This is the companion to the [SMB Simulator Suite](https://github.com/YC-Leo/SMB-simulator), which runs one operating point and shows the unit in motion. The optimizer uses the same simulation engine (`smbsim/`) and reads and writes the same setup files.
+It runs on Windows, macOS and Linux with Python, NumPy and SciPy. There is a command-line tool for scripted runs and a local web app for interactive work. It is the companion to [**SMB-simulator**](https://github.com/YC-Leo/SMB-simulator), which runs one operating point and shows the unit in motion.
 
-![Optimizer](assets/screenshot_optimizer.png)
+![The web app after optimizing Case 2: feed throughput up 61.6 %, the search path and the full-model operating window in the (m2, m3) plane](assets/screenshot_optimizer.png)
 
-![Operating window](assets/screenshot_window.png)
+## Install and quick start
 
-## Quick start
+You need Python 3.10 or newer.
 
-You need Python 3.9 or newer.
+```bash
+git clone https://github.com/YC-Leo/SMB-optimizer.git
+cd SMB-optimizer
+python -m pip install -r requirements.txt -e .
+smb-optimizer run examples/case1_max_feed.json
+```
 
-| System | How to start |
+The run takes two to three minutes on a laptop. Its results go to `results/case1_max_feed/`. To use the web app instead, run `smb-optimizer gui`, which opens <http://127.0.0.1:8051>. On Windows you can also double-click `launch_windows.bat`, and on macOS or Linux run `./launch_mac_linux.sh`.
+
+To install without cloning: `python -m pip install "smb-optimizer @ git+https://github.com/YC-Leo/SMB-optimizer"`.
+
+If NumPy or SciPy is missing, `smb-optimizer` says so and prints the one-line install command.
+
+## Examples
+
+Three example problems are in [`examples/`](examples/), and their outputs are in [`examples/output/`](examples/output/). Components are named generically: **Wanted** components leave in the extract, **Unwanted** components in the raffinate, and the **Solvent** is the desorbent.
+
+| Input | What it asks | Result |
+|---|---|---|
+| [`case1_max_feed.json`](examples/case1_max_feed.json) | **Case 1**, 3 components, 16 columns (5-4-4-3). Find the largest feed with extract purity ≥ 98 % and both recoveries ≥ 99 %. The start point misses the purity (96.9 %). | Feed **1.32 → 2.23 mL/min (+69 %)**, every limit met. |
+| [`case2_max_feed.json`](examples/case2_max_feed.json) | **Case 2**, 7 components, 16 columns (3-7-4-2), volume-change flow. Find the largest feed with both group purities ≥ 90 %. | Feed **0.240 → 0.387 mL/min (+61 %)**, both purities exactly at 90 %. |
+| [`case2_min_desorbent.json`](examples/case2_min_desorbent.json) | **Case 2** at its fixed feed: use as little desorbent as possible, both purities ≥ 90 %. | Desorbent / feed **8.92 → 3.04** with every limit met, but the run stops at its 40-iteration limit before converging (about 10 minutes with 8 processes), so this is an improved point rather than a proven optimum. |
+
+`smb-optimizer run` prints the search as it goes and then a comparison of the start and best points:
+
+```text
+$ smb-optimizer run examples/case1_max_feed.json
+Optimizing examples/case1_max_feed.json ...
+  [     5 s] iteration  0  objective 1.32  purity E/R  96.92 /  99.99  recovery E/R  99.92 /  99.45  (limit missed)
+  [    19 s] iteration  1  objective 1.82  purity E/R  98.51 /  99.91  recovery E/R  99.50 /  99.74
+  [    37 s] iteration  2  objective 2.22  purity E/R  98.00 /  99.83  recovery E/R  99.02 /  99.65  (limit missed)
+  [    77 s] iteration  3  objective 2.22799  purity E/R  98.03 /  99.83  recovery E/R  99.00 /  99.65  (limit missed)
+  [    95 s] iteration  4  objective 2.22927  purity E/R  98.01 /  99.83  recovery E/R  99.00 /  99.65
+
+Maximize feed throughput: 1.32 -> 2.22927
+                                                 start        best
+  Zone I flow (mL/min)                            6.85      6.8578
+  D · Desorbent in (zone I) (mL/min)              5.71        5.71
+  E · Extract out (zone II) (mL/min)              3.58      3.5721
+  F · Feed in (zone III) (mL/min)                 1.32      2.2293
+  Switch time t* (min)                          2.3333      2.3456
+  Extract purity (%)                            96.919      98.005
+  Extract recovery (%)                          99.917      99.000
+  Raffinate purity (%)                          99.985      99.826
+  Raffinate recovery (%)                        99.447      99.649
+Binding limits (value of relaxing each by one unit):
+  - Extract recovery ≥ 99 %: +0.004597 mL/min feed per percentage point
+  - Extract purity ≥ 98 %: +0.0009025 mL/min feed per percentage point
+Stopped: the trust region shrank to its minimum (the limits are as tight as the simulation accuracy).  4 iterations, 50 simulations, 104 s.  All limits met.
+Results written to results/case1_max_feed/ (summary.json, iterations.csv, best_setup.json)
+```
+
+| Output file | Content |
 |---|---|
-| Windows | Double-click `launch_windows.bat` |
-| macOS / Linux | Run `./launch_mac_linux.sh` |
-| Any | Run `python -m pip install -r requirements.txt` once, then `python run_suite.py` |
+| `summary.json` | start and best point: variables, objective, purities, recoveries, zone flows, m-values, the status of every limit, binding limits and their value, effort |
+| `iterations.csv` | one row per accepted iteration |
+| `best_setup.json` | the best operating point as an SMB-simulator setup |
 
-The suite opens at <http://127.0.0.1:8051> (the simulator uses 8050, so both can run side by side). Everything runs locally.
+Other commands:
 
-Three example problems are built in:
+```bash
+smb-optimizer example case2 -o my_problem.json    # start a new problem from an example
+smb-optimizer validate my_problem.json            # check it without running it
+smb-optimizer run my_problem.json -w 4            # optimize with 4 processes
+```
 
-| Problem | What it asks |
-|---|---|
-| **Case 2 · maximize feed (benchmark problem)** | 7 components. Start at the Case 2 operating point and find the largest feed for which the extract and raffinate group purities stay at or above 90 %. Its benchmark optimum is Case 3 of the simulator. |
-| **Case 2 · minimize desorbent** | Same unit and specifications at a fixed feed, using as little desorbent as possible. |
-| **Case 1 · maximize feed** | 3 components. Largest feed with extract purity at or above 98 % and both recoveries at or above 99 %. The start point misses the purity, which shows how the search recovers from an infeasible start. |
+The problem file format is documented in [docs/configuration.md](docs/configuration.md). The same file can be imported into and exported from the web app.
 
-Press **Find best operating point**. The benchmark problem needs about 75 cyclic-steady-state simulations; that took 2–3 minutes on a 2-core cloud machine using one process, and is faster on a recent laptop with several processes.
+### From Python
 
-## Setting up a problem
+```python
+from smbopt import load_problem, optimize
 
-The setup panel is grouped in the order the problem is defined.
+if __name__ == "__main__":          # needed on macOS and Windows when several processes are used
+    result = optimize(load_problem("examples/case1_max_feed.json"))
+    print(result["optimum"]["values"], result["optimum"]["metrics"])
+```
 
-1. **Problem**: load an example, export or import a problem as JSON, or start from a setup exported by the SMB Simulator Suite.
-2. **Process**: the unit itself: components, columns, packing and zone layout come from the setup. The numerical mode and flow model can be switched here.
-3. **Decision variables**: the zone I flow, every port flow except the balance outlet, and the switch time. Tick the ones the optimizer may change and give each a lower bound, start value and upper bound. The balance outlet flow follows from the liquid balance.
-4. **Objective**:
-   - maximize feed throughput
-   - minimize desorbent use (desorbent / feed)
-   - maximize extract or raffinate purity or recovery
-5. **Limits**:
-   - minimum extract and raffinate purity and recovery (group values, desorbent-free)
-   - the largest flow allowed in any zone, which stands for the pressure-drop limit, and the smallest, which keeps every zone and the balance outlet flowing
-   - optionally, a maximum desorbent-to-feed ratio
-6. **Solver**: iteration limit, steady-state tolerance, gradient step and the number of parallel processes.
+## How it connects to SMB-simulator
 
-## What you get
+The two projects share one simulation engine and one setup file format:
 
-- **KPIs**: the objective at the best point and its change from the start, each purity and recovery against its specification, desorbent use and the search effort.
-- **Operating point** (tabs):
-  - **Operating window**: the path of the search in the (m₂, m₃) plane. The equilibrium-theory triangle is drawn as a guide. **Map the operating window** simulates a grid of (m₂, m₃) points with the full model and colours the cells that meet every specification.
-  - **Start vs best**: every decision variable, zone flow, m-value, purity and recovery before and after, with each variable's position between its bounds.
-  - **What limits it**: which limits are binding at the optimum and what relaxing each by one unit would be worth, for example the extra feed allowed by one percentage point less extract purity.
-- **Optimization progress** (tabs): the objective, the purities and recoveries against their specifications, and the decision variables, iteration by iteration. Points that miss a specification are hollow.
-- **Cyclic steady state**: the axial concentration profile and where each component leaves the unit, at the best point or the start.
-- **Run history**, with downloads of the best setup (open it in the SMB Simulator Suite to watch the unit run) and of the iterations as CSV.
+- **Same model.** `smbsim/` in this repository is the engine of [SMB-simulator](https://github.com/YC-Leo/SMB-simulator), kept identical file for file. The optimizer adds `smbopt/`: batched simulation of many operating points, the search and the reporting.
+- **Simulator → optimizer.** Build and check a unit in SMB-simulator and export its setup. Then `smb-optimizer from-setup my_setup.json -o my_problem.json` (or **Use a setup from the SMB Simulator** in the web app) turns it into a problem. The flows and switch time become decision variables with ±30 % bounds.
+- **Optimizer → simulator.** Every run writes `best_setup.json`. Open it in SMB-simulator to watch the unit run at the optimum: the column profiles, the outlet histories and the convergence to steady state.
+
+The web app uses port 8051 and the simulator uses 8050, so both can run side by side.
 
 ## How it works
 
-### Every evaluation is a cyclic steady state
+Each evaluation runs the unit to cyclic steady state. Anderson acceleration makes that affordable, and so does simulating the current point together with its gradient perturbations in one batch, warm-started from the previous point.
 
-The objective and the purity and recovery constraints are only defined at cyclic steady state (CSS), so every evaluation means switching the unit until it repeats itself. Three things make that affordable on a laptop:
+The search is a trust-region SQP on an exact L1 penalty. It solves a small quadratic model inside a box around the current point, simulates the proposed point, and accepts it only if the penalty merit really improves. Infeasible starts are therefore handled, and the strongly nonlinear purity response cannot throw the search far away.
 
-1. **Accelerated CSS.** The CSS is the fixed point of the switch map *x = G(x)*: integrate one switching period, then re-index the columns by one. Plain repetition converges slowly because some modes decay by only a few per cent per switch. Anderson mixing of the last 12 iterates cuts the number of switches by a factor of 3–5. (It must not clip slightly negative concentrations at zero: the central-difference grid has small negative values at steady state, and clipping stalls the iteration.)
-2. **Batched simulation.** The current point and one slightly changed copy per decision variable differ only in flows and switch time. `BatchSimulator` stacks them along an extra array axis and integrates them with exactly the same equations as the simulator (the results are bit-for-bit identical). With small grids the cost of a NumPy step is mostly fixed overhead, so six operating points cost about twice as much as one.
-3. **Warm starts and parallel processes.** Every simulation starts from the CSS of the previous point, and gradient batches can be split over several processes.
-
-### Trust-region SQP
-
-The purities respond very nonlinearly to the flows: in the benchmark problem a 2 % change in switch time moves purity by about 35 points. A line-search SQP (SciPy's SLSQP) took a first step to the feed's upper bound, lost 30 points of purity, and then spent its time backtracking. The optimizer therefore uses a trust-region SQP on an exact L1 penalty (Sl1QP):
-
-1. At the current point, compute the objective, the constraints and their gradients (forward differences from one batch).
-2. Solve a small quadratic model of the problem, with a damped-BFGS Hessian of the Lagrangian, inside a box of size Δ around the current point. Constraint violations are allowed in the model at a penalty, so an infeasible start is not a problem.
-3. Simulate the proposed point. Accept it only if the penalty merit (objective + μ · violation) improves by at least 10 % of what the model predicted.
-4. Enlarge the box after good steps, shrink it after poor ones, and stop when the best step lies well inside the box and promises less than 0.01 % improvement.
-
-Two details matter in practice. Each steady state is converged to 1e-8 g/mL per switch: at 1e-7 the purities still depend on the starting state by about 0.002 percentage point, which is enough to make a penalty method reject good steps near the optimum. And because purity is curved in the flows, a step aimed exactly at a limit tends to land just outside it; the search therefore aims 0.002 percentage point inside every product specification, and a second-order correction re-plans a step that left a curved limit.
-
-Flow limits and feed or desorbent objectives are computed analytically, with exact gradients.
-
-### What limits the optimum
-
-At the optimum the gradient of the objective is a non-negative combination of the gradients of the binding limits (KKT conditions). The multipliers are estimated by non-negative least squares and converted to physical units: they say how much the objective would improve per unit of relaxation of each limit.
+At the optimum, non-negative least squares on the KKT conditions gives the value of each binding limit in physical units. The details are in [docs/method.md](docs/method.md).
 
 ## Validation
 
-`python validation/benchmark_optimum.py` solves the benchmark problem from the Case 2 operating point and compares the result with the benchmark optimum (Case 3).
+`python validation/benchmark_optimum.py` solves the Case 2 feed problem and compares the result with its benchmark optimum, which is the operating point stored as Case 3 in SMB-simulator.
 
 | | Start (Case 2) | Optimum found here | Benchmark optimum (Case 3) |
 |---|---|---|---|
@@ -105,63 +126,76 @@ At the optimum the gradient of the objective is a non-negative combination of th
 | Extract / raffinate purity (%) | 91.30 / 96.04 | **90.00 / 90.00** | 90.00 / 90.00 |
 | m₂ / m₃ | 0.549 / 0.648 | **0.527 / 0.687** | 0.526 / 0.688 |
 
-From the Case 2 operating point the optimizer raises the feed by 61.4 %, the same as the benchmark optimum, in 9 iterations and 66 simulations (under 3 minutes on a 2-core cloud machine with one process). Both purities end exactly on their limits, and the two optima sit at the same (m₂, m₃). The extract flow and switch time differ slightly because one zone I flow / switch time combination can be traded against another at nearly the same m-values. The binding limits are both purities, the zone I flow limit and the desorbent's lower bound.
+The optimizer raises the feed by 61.4 %, the same as the benchmark optimum, and both optima sit at the same (m₂, m₃). The extract flow and switch time differ slightly because one zone I flow / switch time combination can be traded against another at nearly the same m-values.
 
-`python validation/consistency_checks.py` then tests the optimizer itself:
+`python validation/consistency_checks.py` checks the optimizer itself:
+- The best feed falls monotonically as the purity limits tighten from 88 % to 92 %.
+- The multipliers predict the value of one point of purity to within 1 %.
+- Starting at the benchmark optimum, the search stays there.
+- From a deliberately poor start it ends 0.75 % below the best.
 
-| Check | Result |
-|---|---|
-| Both purities ≥ 88 / 90 / 92 % | best feed 0.4423 / 0.3874 / 0.3325 mL/min: monotonic |
-| Value of one percentage point of purity | observed 0.0274–0.0275 mL/min feed, predicted 0.0277 by the multipliers at 90 % |
-| Start at the benchmark optimum | stays there (0.3874) |
-| Start from a poor point (feed 0.10, long switch) | ends at 0.3845, 0.75 % below the best |
+Full tables are in [validation/](validation/).
 
-The **Case 1** example starts outside its specification (extract purity 96.9 % against 98 %) and ends at a feed of 2.229 mL/min, 69 % above the start, with every limit met.
+The test suite reruns the full Case 1 and Case 2 optimizations on Windows, macOS and Linux and compares them with stored references in [tests/reference/](tests/reference/). The search can take a slightly different path on different platforms and library versions (see [docs/method.md](docs/method.md#reproducibility-across-platforms)), so results are compared within tolerances:
+- the objective to within 0.5 %
+- purities at their limits to within 0.1 percentage point
+- each decision variable to within 3 % of its bound range
 
-Full tables: `validation/benchmark_results.md`, `validation/consistency_results.md`.
+## Project status and limitations
 
-### What the operating-window map shows
+**Status:** version 1.0.0, stable. The method, the examples and the file format are tested, and CI covers Python 3.10–3.15 on Windows, macOS and Linux.
 
-For the benchmark problem the full-model window lies well to the left of the equilibrium-theory triangle: the best point has m₂ = 0.53, below the Henry constants of all three raffinate components (0.555–0.596), where dilute theory would send them into the extract. At these concentrations the solutes compete for the adsorbent and displace each other, so they travel faster than the dilute theory predicts. That is why this optimizer works on the full model, and why the triangle is shown only as a guide.
+**Limitations:**
 
-## Model
-
-The simulation engine is the one in the SMB Simulator Suite: competitive Langmuir isotherm, linear-driving-force mass transfer, axial dispersion, constant flow or density-driven volume change, and explicit port switching to cyclic steady state, in either the Original (finite-difference) or the Conservative (finite-volume) numerical mode. See that project for the equations and their validation.
-
-The m-values are m<sub>j</sub> = (Q<sub>j</sub> t* − ε V) / ((1 − ε) V), with ε the total porosity and V the column volume. The Henry constants in the operating-window chart are the isotherm slopes at infinite dilution in the desorbent.
+- **Local optimum.** The search is gradient-based and finds a local optimum near the start point within the given bounds. Different starts usually end at practically the same point, but this is not guaranteed. Try more than one start for a new system.
+- **Convergence on flat objectives.** The minimize-desorbent example improves desorbent use about threefold, but it reaches its iteration limit before the search converges. Raise `max_iterations` or tighten the bounds when the objective is flat near the optimum.
+- **Run time.** Every evaluation is a full cyclic-steady-state simulation, so a run takes minutes, not seconds. Parallel processes help on multi-core machines.
+- **Decision variables.** Only flows and the switch time are optimized. The number of columns per zone is a discrete choice and stays fixed, so compare layouts by running each one.
+- **Model scope.** The model is SMB-simulator's: competitive Langmuir isotherm, linear-driving-force mass transfer, axial dispersion, isothermal. There is no pressure-drop model; the largest-zone-flow limit stands in for it.
+- **Operating-window map.** It needs a classic closed-loop four-zone unit (desorbent, extract, feed, raffinate).
+- **One objective at a time.** There is no Pareto front. To trade throughput against purity, sweep the limits, as `validation/consistency_checks.py` does.
+- **Input data.** Results are only as good as the isotherm and mass-transfer parameters. The example parameters are illustrative.
 
 ## Project layout
 
 ```
-smbsim/              simulation engine (same as the SMB Simulator Suite)
+smbsim/              simulation engine (identical to SMB-simulator)
 smbopt/
   problem.py         decision variables, objectives, limits, example problems
   batch.py           batched CSS solver with Anderson acceleration
   optimizer.py       trust-region SQP, gradients, multipliers, process pool
   window.py          (m2, m3) operating-window map, Henry constants
-  webapp/            local web server (Python standard library) and UI
-    static/            HTML/CSS/JS with hand-written SVG charts, no external libraries
-run_suite.py         launcher
-validation/          benchmark optimum
-tests/               quick checks
+  io.py              problem files (JSON/YAML) and result files
+  cli.py             the smb-optimizer command
+  webapp/            local web server (Python standard library) and UI, no external libraries
+examples/            example problems (Case 1, Case 2) and their outputs
+tests/               unit tests and Case 1/Case 2 reference tests
+validation/          benchmark optimum and consistency checks
+docs/                problem file format and method
+assets/              screenshots
+tools/check_repo.py  content check run before every commit and in CI
 ```
 
-The optimizer can also be used from Python:
+## How to cite
 
-```python
-from smbopt import problem_preset, optimize
+If you use SMB-optimizer in your work, please cite it. GitHub shows a **Cite this repository** button built from [CITATION.cff](CITATION.cff), or you can use:
 
-problem = problem_preset("case2_feed")
-result = optimize(problem)
-print(result["optimum"]["values"], result["optimum"]["metrics"])
+```bibtex
+@software{chiang_smb_optimizer_2026,
+  author  = {Chiang, Yadong (Leo)},
+  title   = {{SMB-optimizer}: operating-condition optimizer for simulated moving bed chromatography},
+  version = {1.0.0},
+  year    = {2026},
+  url     = {https://github.com/YC-Leo/SMB-optimizer}
+}
 ```
 
-On macOS and Windows, code that uses parallel processes must sit under `if __name__ == "__main__":`.
+If you also use the simulation model on its own, please cite [SMB-simulator](https://github.com/YC-Leo/SMB-simulator) as well.
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, test and validation commands, and pull request expectations.
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains the setup, the checks to run and the pull request workflow. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

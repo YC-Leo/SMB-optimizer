@@ -1,0 +1,129 @@
+{
+  "components": [
+    {
+      "name": "Unwanted 1",
+      "role": "raffinate",
+      "qsat": 0.401296,
+      "keq": 1118.76,
+      "kap": 4.0,
+      "rho": 0.651,
+      "feed_frac": 0.2,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Wanted 1",
+      "role": "extract",
+      "qsat": 0.412099,
+      "keq": 1420.32,
+      "kap": 4.0,
+      "rho": 0.733,
+      "feed_frac": 0.2,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Solvent",
+      "role": "desorbent",
+      "qsat": 0.347847,
+      "keq": 1236.21,
+      "kap": 4.0,
+      "rho": 0.645,
+      "feed_frac": 0.0,
+      "des_frac": 1.0
+    },
+    {
+      "name": "Wanted 2",
+      "role": "extract",
+      "qsat": 0.52927,
+      "keq": 1078.88,
+      "kap": 4.0,
+      "rho": 0.766,
+      "feed_frac": 0.03,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Wanted 3",
+      "role": "extract",
+      "qsat": 0.54785,
+      "keq": 1119.52,
+      "kap": 4.0,
+      "rho": 0.908,
+      "feed_frac": 0.07,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Unwanted 2",
+      "role": "raffinate",
+      "qsat": 0.3221,
+      "keq": 1376.6,
+      "kap": 4.0,
+      "rho": 0.588,
+      "feed_frac": 0.2,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Unwanted 3",
+      "role": "raffinate",
+      "qsat": 0.517374,
+      "keq": 919.522,
+      "kap": 4.0,
+      "rho": 0.784,
+      "feed_frac": 0.3,
+      "des_frac": 0.0
+    }
+  ],
+  "isotherm": "competitive_langmuir",
+  "scheme": "original",
+  "flow_model": "volume_change",
+  "zones": [
+    3,
+    7,
+    4,
+    2
+  ],
+  "ports": [
+    {
+      "kind": "desorbent",
+      "zone": 0,
+      "flow": 1.6400000000001083,
+      "balance": false
+    },
+    {
+      "kind": "extract",
+      "zone": 1,
+      "flow": 0.8162315457015892,
+      "balance": false
+    },
+    {
+      "kind": "feed",
+      "zone": 2,
+      "flow": 0.3872454415038418,
+      "balance": false
+    },
+    {
+      "kind": "raffinate",
+      "zone": 3,
+      "flow": 0.0,
+      "balance": true
+    }
+  ],
+  "open_loop": false,
+  "Q1": 6.999999999999956,
+  "step_time": 1.893517331470083,
+  "length": 20.0,
+  "radius": 0.47000006190856475,
+  "dead_length": 0.0,
+  "dead_nodes": 8,
+  "porosity_spec": "split",
+  "porosity_total": 0.45,
+  "bed_porosity": 0.387,
+  "particle_porosity": 0.461,
+  "dispersion_spec": "peclet",
+  "peclet": 1000.0,
+  "particle_diameter": 100.0,
+  "particle_peclet": 0.5,
+  "nodes": 15,
+  "cells": 20,
+  "css_tol": 1e-05,
+  "max_cycles": 150,
+  "accelerate": true
+}

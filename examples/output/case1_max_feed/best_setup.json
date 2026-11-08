@@ -1,0 +1,89 @@
+{
+  "components": [
+    {
+      "name": "Unwanted",
+      "role": "raffinate",
+      "qsat": 0.493346,
+      "keq": 11.6578,
+      "kap": 1.0,
+      "rho": 0.81,
+      "feed_frac": 0.865,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Wanted",
+      "role": "extract",
+      "qsat": 0.395771,
+      "keq": 70.8559,
+      "kap": 1.0,
+      "rho": 0.903,
+      "feed_frac": 0.135,
+      "des_frac": 0.0
+    },
+    {
+      "name": "Solvent",
+      "role": "desorbent",
+      "qsat": 0.327696,
+      "keq": 79.24,
+      "kap": 1.0,
+      "rho": 0.902,
+      "feed_frac": 0.0,
+      "des_frac": 1.0
+    }
+  ],
+  "isotherm": "competitive_langmuir",
+  "scheme": "original",
+  "flow_model": "constant",
+  "zones": [
+    5,
+    4,
+    4,
+    3
+  ],
+  "ports": [
+    {
+      "kind": "desorbent",
+      "zone": 0,
+      "flow": 5.709968399744735,
+      "balance": false
+    },
+    {
+      "kind": "extract",
+      "zone": 1,
+      "flow": 3.5721424532434725,
+      "balance": false
+    },
+    {
+      "kind": "feed",
+      "zone": 2,
+      "flow": 2.229265152,
+      "balance": false
+    },
+    {
+      "kind": "raffinate",
+      "zone": 3,
+      "flow": 0.0,
+      "balance": true
+    }
+  ],
+  "open_loop": false,
+  "Q1": 6.857793725019748,
+  "step_time": 2.345634805779727,
+  "length": 20.0,
+  "radius": 0.47000006190856475,
+  "dead_length": 2.0,
+  "dead_nodes": 8,
+  "porosity_spec": "total",
+  "porosity_total": 0.45,
+  "bed_porosity": 0.387,
+  "particle_porosity": 0.461,
+  "dispersion_spec": "peclet",
+  "peclet": 1000.0,
+  "particle_diameter": 100.0,
+  "particle_peclet": 0.5,
+  "nodes": 22,
+  "cells": 20,
+  "css_tol": 1e-05,
+  "max_cycles": 150,
+  "accelerate": true
+}

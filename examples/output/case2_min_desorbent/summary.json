@@ -1,0 +1,235 @@
+{
+  "success": false,
+  "feasible": true,
+  "message": "Iteration limit reached.",
+  "objective": "min_desorbent",
+  "objective_label": "Minimize desorbent use (desorbent / feed)",
+  "start": {
+    "values": {
+      "Q1": 6.96,
+      "port:0": 2.14,
+      "port:1": 0.721,
+      "port:2": 0.24,
+      "step_time": 1.893
+    },
+    "objective": 8.916666667,
+    "metrics": {
+      "extract_purity": 91.297864814,
+      "extract_recovery": 91.799996683,
+      "raffinate_purity": 96.035372189,
+      "raffinate_recovery": 95.735657639
+    },
+    "feed": 0.24,
+    "desorbent_ratio": 8.916666667,
+    "zone_flows": [
+      6.96,
+      6.239,
+      6.479,
+      4.82
+    ],
+    "balance_flow": 1.659,
+    "m_values": [
+      0.846425038,
+      0.548805841,
+      0.647874644,
+      -0.036938459
+    ],
+    "constraints": [
+      {
+        "name": "Extract purity ≥ 90 %",
+        "value": 91.297864814,
+        "ok": true
+      },
+      {
+        "name": "Raffinate purity ≥ 90 %",
+        "value": 96.035372189,
+        "ok": true
+      },
+      {
+        "name": "Zone I flow ≤ 7 mL/min",
+        "value": 6.96,
+        "ok": true
+      },
+      {
+        "name": "Zone II flow ≤ 7 mL/min",
+        "value": 6.239,
+        "ok": true
+      },
+      {
+        "name": "Zone III flow ≤ 7 mL/min",
+        "value": 6.479,
+        "ok": true
+      },
+      {
+        "name": "Zone IV flow ≤ 7 mL/min",
+        "value": 4.82,
+        "ok": true
+      },
+      {
+        "name": "Zone I flow ≥ 0.01 mL/min",
+        "value": 6.96,
+        "ok": true
+      },
+      {
+        "name": "Zone II flow ≥ 0.01 mL/min",
+        "value": 6.239,
+        "ok": true
+      },
+      {
+        "name": "Zone III flow ≥ 0.01 mL/min",
+        "value": 6.479,
+        "ok": true
+      },
+      {
+        "name": "Zone IV flow ≥ 0.01 mL/min",
+        "value": 4.82,
+        "ok": true
+      },
+      {
+        "name": "Balance outlet flow ≥ 0.01 mL/min",
+        "value": 1.659,
+        "ok": true
+      }
+    ]
+  },
+  "optimum": {
+    "values": {
+      "Q1": 6.728670006,
+      "port:0": 0.729385591,
+      "port:1": 0.536986498,
+      "port:2": 0.24,
+      "step_time": 1.918895816
+    },
+    "objective": 3.03910663,
+    "metrics": {
+      "extract_purity": 90.09143105,
+      "extract_recovery": 85.553519669,
+      "raffinate_purity": 93.195046154,
+      "raffinate_recovery": 95.436906638
+    },
+    "feed": 0.24,
+    "desorbent_ratio": 3.03910663,
+    "zone_flows": [
+      6.728670006,
+      6.191683508,
+      6.431683508,
+      5.999284415
+    ],
+    "balance_flow": 0.432399093,
+    "m_values": [
+      0.788930749,
+      0.564237604,
+      0.664661646,
+      0.483731376
+    ],
+    "constraints": [
+      {
+        "name": "Extract purity ≥ 90 %",
+        "value": 90.09143105,
+        "ok": true
+      },
+      {
+        "name": "Raffinate purity ≥ 90 %",
+        "value": 93.195046154,
+        "ok": true
+      },
+      {
+        "name": "Zone I flow ≤ 7 mL/min",
+        "value": 6.728670006,
+        "ok": true
+      },
+      {
+        "name": "Zone II flow ≤ 7 mL/min",
+        "value": 6.191683508,
+        "ok": true
+      },
+      {
+        "name": "Zone III flow ≤ 7 mL/min",
+        "value": 6.431683508,
+        "ok": true
+      },
+      {
+        "name": "Zone IV flow ≤ 7 mL/min",
+        "value": 5.999284415,
+        "ok": true
+      },
+      {
+        "name": "Zone I flow ≥ 0.01 mL/min",
+        "value": 6.728670006,
+        "ok": true
+      },
+      {
+        "name": "Zone II flow ≥ 0.01 mL/min",
+        "value": 6.191683508,
+        "ok": true
+      },
+      {
+        "name": "Zone III flow ≥ 0.01 mL/min",
+        "value": 6.431683508,
+        "ok": true
+      },
+      {
+        "name": "Zone IV flow ≥ 0.01 mL/min",
+        "value": 5.999284415,
+        "ok": true
+      },
+      {
+        "name": "Balance outlet flow ≥ 0.01 mL/min",
+        "value": 0.432399093,
+        "ok": true
+      }
+    ]
+  },
+  "binding": [],
+  "evaluations": 173,
+  "elapsed": 650.084725142,
+  "rejected_steps": 16,
+  "variables": [
+    {
+      "key": "Q1",
+      "label": "Zone I flow",
+      "unit": "mL/min",
+      "start": 6.96,
+      "lower": 6.46,
+      "upper": 7.46,
+      "optimize": true
+    },
+    {
+      "key": "port:0",
+      "label": "D · Desorbent in (zone I)",
+      "unit": "mL/min",
+      "start": 2.14,
+      "lower": 0.5,
+      "upper": 4.0,
+      "optimize": true
+    },
+    {
+      "key": "port:1",
+      "label": "E · Extract out (zone II)",
+      "unit": "mL/min",
+      "start": 0.721,
+      "lower": 0.333702,
+      "upper": 1.108298,
+      "optimize": true
+    },
+    {
+      "key": "port:2",
+      "label": "F · Feed in (zone III)",
+      "unit": "mL/min",
+      "start": 0.24,
+      "lower": 0.0,
+      "upper": 0.627,
+      "optimize": false
+    },
+    {
+      "key": "step_time",
+      "label": "Switch time t*",
+      "unit": "min",
+      "start": 1.893,
+      "lower": 0.5,
+      "upper": 4.0,
+      "optimize": true
+    }
+  ],
+  "iterations": 24
+}
