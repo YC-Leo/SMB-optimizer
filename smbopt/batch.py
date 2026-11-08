@@ -14,6 +14,8 @@ Array layout: (component, member, column, grid point).
 from __future__ import annotations
 
 import math
+from typing import Callable, Optional
+
 import numpy as np
 
 from smbsim import SMBConfig, Simulator
@@ -21,6 +23,12 @@ from smbsim.solver import ORIG_CFL, _vanleer
 
 
 class BatchSimulator:
+    """Integrates several operating points of one unit together (see the module docstring).
+
+    All members must share the unit layout, grid, numerical mode and flow model; they may
+    differ in the zone I flow, port flows and switch time.
+    """
+
     def __init__(self, cfgs: list[SMBConfig]):
         self.cfgs = cfgs
         self.sims = [Simulator(c) for c in cfgs]  # validates every member, builds its flow plan
@@ -67,7 +75,8 @@ class BatchSimulator:
             self.rhs = self._rhs_conservative
 
     # ------------------------------------------------------------------ network
-    def network(self, dF):
+    def network(self, dF: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Column inlet flows (B, n) and balance-outlet flows (B,) for flow changes ``dF`` across each column."""
         Fin = self.Q1[:, None] + np.concatenate(
             [np.zeros((self.B, 1)), np.cumsum(dF[:, :-1] + self.D_next[:, :-1], axis=1)], axis=1
         )
@@ -80,14 +89,17 @@ class BatchSimulator:
                 Fin[:, self.jb :] -= QB[:, None]
         return Fin, QB
 
-    def mix_inlet(self, Cout, Fin):  # Cout (nc, B, n)
+    def mix_inlet(self, Cout: np.ndarray, Fin: np.ndarray) -> np.ndarray:  # Cout (nc, B, n)
+        """Column inlet concentrations from the previous column outlets plus the inlet ports."""
         return (Cout[:, :, self.prev] * (Fin - self.A_in) + self.c_add) / Fin
 
-    def outlet_rates(self, Cout, QB):  # -> (B, nout, nc)
+    def outlet_rates(self, Cout: np.ndarray, QB: np.ndarray) -> np.ndarray:  # -> (B, nout, nc)
+        """Mass flow of every component in every outlet port, for every member."""
         flows = np.where(self.out_isbal, QB[:, None], self.out_fixed)
         return np.transpose(Cout[:, :, self.out_src], (1, 2, 0)) * flows[:, :, None]
 
-    def qeq(self, C):
+    def qeq(self, C: np.ndarray) -> np.ndarray:
+        """Equilibrium adsorbed concentrations from the isotherm."""
         return self.qeq_fn(C, self.par)
 
     # ------------------------------------------------------------------ schemes
@@ -148,11 +160,12 @@ class BatchSimulator:
         return dC, dQ, self.outlet_rates(C[..., -1], QB), QB
 
     # ------------------------------------------------------------------ driving
-    def initial_state(self):
+    def initial_state(self) -> tuple[np.ndarray, np.ndarray]:
+        """Unit full of desorbent, in equilibrium, for every member: (C, Q), each (nc, B, n, ncell)."""
         C0, Q0 = self.sims[0].initial_state()
         return np.repeat(C0[:, None], self.B, axis=1), np.repeat(Q0[:, None], self.B, axis=1)
 
-    def advance(self, C, Q):
+    def advance(self, C: np.ndarray, Q: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """One switching period for every member (SSP-RK3, a common number of sub-steps)."""
         dt4 = self.dt[None, :, None, None]
         dto = self.dt[:, None, None]
@@ -185,13 +198,20 @@ class BatchSimulator:
         shp = (self.B, self.nc, self.n, self.ncell)
         return (np.moveaxis(x[:, :half].reshape(shp), 0, 1), np.moveaxis(x[:, half:].reshape(shp), 0, 1))
 
-    def switch_map(self, x):
+    def switch_map(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """One switching period followed by the port switch (re-indexing by one column)."""
         C, Q = self._unpack(x)
         C, Q, out, qb = self.advance(C, Q)
         return self._pack(np.roll(C, -1, axis=2), np.roll(Q, -1, axis=2)), out, qb
 
-    def css(self, warm=None, tol=1e-7, max_switches=None, memory=12, cancel=None):
+    def css(
+        self,
+        warm: Optional[tuple[np.ndarray, np.ndarray]] = None,
+        tol: float = 1e-7,
+        max_switches: Optional[int] = None,
+        memory: int = 12,
+        cancel: Optional[Callable[[], bool]] = None,
+    ) -> dict:
         """Switch every member to cyclic steady state.
 
         The CSS is the fixed point x = G(x) of the switch map G (one period, then re-index the
@@ -259,5 +279,6 @@ class BatchSimulator:
             "converged": bool(np.all(res < tol)),
         }
 
-    def member_state(self, result, b):
+    def member_state(self, result: dict, b: int) -> tuple[np.ndarray, np.ndarray]:
+        """The CSS state (C, Q) of member ``b`` from a ``css()`` result."""
         return result["C"][:, b].copy(), result["Q"][:, b].copy()

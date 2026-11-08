@@ -43,6 +43,8 @@ KIND_LABEL = {"desorbent": "Desorbent in", "feed": "Feed in", "extract": "Extrac
 
 @dataclass
 class Variable:
+    """One decision variable: a flow or the switch time, with its bounds and start value."""
+
     key: str  # 'Q1' | 'port:<index>' | 'step_time'
     label: str
     unit: str
@@ -54,6 +56,8 @@ class Variable:
 
 @dataclass
 class Spec:
+    """A minimum product purity or recovery (in %), applied when ``enabled``."""
+
     metric: str  # one of METRICS
     minimum: float = 90.0  # %
     enabled: bool = True
@@ -61,6 +65,8 @@ class Spec:
 
 @dataclass
 class Problem:
+    """An operating-condition optimization problem (see the module docstring for its parts)."""
+
     process: dict  # SMBConfig.to_dict()
     variables: List[Variable]
     objective: str = "max_feed"
@@ -77,9 +83,11 @@ class Problem:
 
     # ------------------------------------------------------------- mapping
     def base_config(self) -> SMBConfig:
+        """The process setup as an ``SMBConfig`` (a fresh copy, at the stored operating point)."""
         return SMBConfig.from_dict(copy.deepcopy(self.process))
 
     def opt_vars(self) -> List[Variable]:
+        """The decision variables the optimizer may change."""
         return [v for v in self.variables if v.optimize]
 
     def config_at(self, values: dict) -> SMBConfig:
@@ -96,11 +104,13 @@ class Problem:
         return cfg
 
     def start_values(self) -> dict:
+        """Start value of every variable, keyed by ``Variable.key``."""
         return {v.key: v.start for v in self.variables}
 
     # ------------------------------------------------------- analytic figures
     @staticmethod
     def flows(cfg: SMBConfig) -> dict:
+        """Zone flows, balance-outlet flow, feed, desorbent and desorbent/feed ratio of a setup."""
         plan = cfg.flow_plan()
         feed, des = cfg.total_flow("feed"), cfg.total_flow("desorbent")
         return {
@@ -112,10 +122,12 @@ class Problem:
         }
 
     def objective_is_analytic(self) -> bool:
+        """True when the objective follows from the flows alone (no simulation needed)."""
         return self.objective in ("max_feed", "min_desorbent")
 
     # ------------------------------------------------------------- checks
     def validate(self) -> List[str]:
+        """Check the problem; returns a list of readable error messages (empty when valid)."""
         errs = []
         try:
             cfg = self.base_config()
@@ -158,10 +170,12 @@ class Problem:
 
     # --------------------------------------------------------- serialization
     def to_dict(self) -> dict:
+        """Plain-dictionary form, as stored in a problem file."""
         return asdict(self)
 
     @classmethod
     def from_dict(cls, d: dict) -> "Problem":
+        """Build a problem from ``to_dict()`` output; unknown keys are ignored."""
         d = copy.deepcopy(d)
         d["variables"] = [Variable(**v) for v in d.get("variables", [])]
         d["specs"] = [Spec(**s) for s in d.get("specs", [])] or [Spec(m, 90.0, m.endswith("purity")) for m in METRICS]
@@ -209,7 +223,7 @@ def default_variables(cfg: SMBConfig, spread: float = 0.3) -> List[Variable]:
 
 
 # =================================================================== presets
-def _set(vars_, key, lower, upper, optimize=True):
+def _set(vars_: List[Variable], key: str, lower: float, upper: float, optimize: bool = True) -> List[Variable]:
     for v in vars_:
         if v.key == key:
             v.lower, v.upper, v.optimize = lower, upper, optimize
@@ -287,4 +301,5 @@ PROBLEMS = {
 
 
 def problem_preset(name: str) -> Problem:
+    """A fresh copy of a built-in example problem (a key of ``PROBLEMS``; unknown names give Case 2)."""
     return PROBLEMS.get(name, PROBLEMS["case2_feed"])[2]()

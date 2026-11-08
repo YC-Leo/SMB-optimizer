@@ -46,7 +46,8 @@ class Runner:
     runner = None
 
     @classmethod
-    def get(cls, workers):
+    def get(cls, workers: int) -> BatchRunner:
+        """The shared runner for ``workers`` processes (0 = automatic)."""
         w = workers or default_workers()
         with cls.lock:
             if cls.runner is None or cls.runner.workers != w:
@@ -57,7 +58,9 @@ class Runner:
 
 
 class Job:
-    def __init__(self, kind, problem: Problem, extra=None):
+    """An optimization or operating-window scan running in a background thread."""
+
+    def __init__(self, kind: str, problem: Problem, extra: dict | None = None) -> None:
         self.id = uuid.uuid4().hex[:10]
         self.kind, self.problem, self.extra = kind, problem, extra or {}
         self.status = "running"
@@ -102,7 +105,8 @@ class Job:
         with self.lock:
             self.progress = _clean(p)
 
-    def snapshot(self):
+    def snapshot(self) -> dict:
+        """Status, latest progress and (when done) the result, for the web page to poll."""
         with self.lock:
             return {
                 "id": self.id,
@@ -133,6 +137,8 @@ def problem_info(p: Problem) -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
+    """JSON API under /api/ plus the static web page."""
+
     server_version = "SMBOptimizer/" + __version__
 
     def log_message(self, fmt, *args):  # keep the console quiet

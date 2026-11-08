@@ -19,6 +19,7 @@ import os
 import time
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as mp
+from typing import Any, Callable, Optional, Sequence
 
 import numpy as np
 from scipy.optimize import minimize, nnls
@@ -29,7 +30,7 @@ from .problem import Problem, METRICS, METRIC_LABEL, OBJECTIVES
 
 
 class Cancelled(Exception):
-    pass
+    """Raised when a run is stopped through its ``cancel`` callback."""
 
 
 # ------------------------------------------------------------------ batch runs (also used by workers)
@@ -55,14 +56,15 @@ def _slim(m):
     return out
 
 
-def default_workers():
+def default_workers() -> int:
+    """Default number of worker processes: one fewer than the CPU count, between 1 and 8."""
     return max(1, min((os.cpu_count() or 2) - 1, 8))
 
 
 class BatchRunner:
     """Runs a list of operating points to CSS, split over worker processes when useful."""
 
-    def __init__(self, workers=0):
+    def __init__(self, workers: int = 0) -> None:
         self.workers = workers or default_workers()
         self.pool = None
 
@@ -77,7 +79,13 @@ class BatchRunner:
             self.pool.shutdown(cancel_futures=True)
             self.pool = None
 
-    def run(self, cfgs, warm, tol, cancel=None):
+    def run(
+        self, cfgs: Sequence[SMBConfig], warm: Any, tol: float, cancel: Optional[Callable[[], bool]] = None
+    ) -> tuple[list[dict], float]:
+        """Run every setup to CSS (from the warm state ``warm``, or from a fresh start if None).
+
+        Returns one ``{"metrics", "C", "Q"}`` dictionary per setup and the mean number of switches.
+        """
         dicts = [c.to_dict() for c in cfgs]
         k = min(self.workers, len(dicts))
         if k <= 1:
@@ -105,7 +113,20 @@ class BatchRunner:
 
 # ------------------------------------------------------------------ the optimizer
 class Optimizer:
-    def __init__(self, problem: Problem, progress=None, cancel=None, runner: BatchRunner | None = None):
+    """Trust-region SQP search for the best operating point of a ``Problem``.
+
+    ``progress`` is called with a dictionary after every evaluation batch and iteration, and
+    ``cancel`` is polled between simulations; returning True stops the run with ``Cancelled``.
+    Use ``run()`` to optimize.
+    """
+
+    def __init__(
+        self,
+        problem: Problem,
+        progress: Optional[Callable[[dict], None]] = None,
+        cancel: Optional[Callable[[], bool]] = None,
+        runner: BatchRunner | None = None,
+    ) -> None:
         errs = problem.validate()
         if errs:
             raise ValueError("\n".join(errs))
@@ -135,13 +156,15 @@ class Optimizer:
         self.band = np.array([-self.AIM if c["kind"] == "spec" else 0.0 for c in self.cons])
 
     # ---------------------------------------------------------- variable mapping
-    def values(self, z):
+    def values(self, z: np.ndarray) -> dict:
+        """Physical values of all variables at the scaled point ``z`` (each in [0, 1])."""
         x = self.lb + np.clip(z, 0, 1) * self.span
         vals = self.p.start_values()
         vals.update({v.key: float(xi) for v, xi in zip(self.vars, x)})
         return vals
 
-    def config(self, z):
+    def config(self, z: np.ndarray) -> SMBConfig:
+        """The process setup at the scaled point ``z``."""
         return self.p.config_at(self.values(z))
 
     @staticmethod
@@ -251,13 +274,15 @@ class Optimizer:
         m = metrics if metrics is not None else self._evaluate(z, need_grad=False)["metrics"]
         return -m[o[4:]] / 100.0
 
-    def fun(self, z):
+    def fun(self, z: np.ndarray) -> float:
+        """Scaled objective at ``z`` (minimized)."""
         if self.p.objective_is_analytic():
             self._evaluate(z)  # speculative: the point and its gradient are needed next
             return self._obj_value(z)
         return self._obj_value(z, self._evaluate(z)["metrics"])
 
-    def jac(self, z):
+    def jac(self, z: np.ndarray) -> np.ndarray:
+        """Gradient of the scaled objective at ``z``."""
         o = self.p.objective
         if o == "max_feed":
             return self._analytic_grad(np.asarray(z, float), lambda q: -self._analytic(q)["feed"] / self.feed0)
@@ -313,18 +338,21 @@ class Optimizer:
             return (p.max_desorbent_ratio - a["desorbent_ratio"]) / p.max_desorbent_ratio
         raise KeyError(c["kind"])
 
-    def con_value(self, c, z):
+    def con_value(self, c: dict, z: np.ndarray) -> float:
+        """Scaled value of limit ``c`` at ``z`` (met when >= 0)."""
         if c["kind"] == "spec":
             return (self._evaluate(z, need_grad=False)["metrics"][c["metric"]] - c["minimum"]) / c["scale"]
         return self._analytic_con(c, np.asarray(z, float))
 
-    def con_grad(self, c, z):
+    def con_grad(self, c: dict, z: np.ndarray) -> np.ndarray:
+        """Gradient of the scaled limit ``c`` at ``z``."""
         if c["kind"] == "spec":
             return self._evaluate(z)["grad"][c["metric"]] / c["scale"]
         return self._analytic_grad(np.asarray(z, float), lambda q: self._analytic_con(c, q))
 
     # ---------------------------------------------------------- reporting helpers
-    def objective_physical(self, z, metrics):
+    def objective_physical(self, z: np.ndarray, metrics: dict) -> float:
+        """Objective in physical units (mL/min feed, desorbent/feed or %)."""
         o = self.p.objective
         a = self._analytic(z)
         if o == "max_feed":
@@ -333,7 +361,8 @@ class Optimizer:
             return a["desorbent_ratio"]
         return metrics[o[4:]]
 
-    def snapshot(self, z):
+    def snapshot(self, z: np.ndarray) -> dict:
+        """Values, objective, purities, recoveries, flows and limit status at ``z``."""
         hit = self._evaluate(z, need_grad=False)
         a = self._analytic(z)
         cfg = self.config(z)
@@ -368,7 +397,8 @@ class Optimizer:
         return a["desorbent_ratio"]
 
     # ---------------------------------------------------------- run
-    def run(self):
+    def run(self) -> dict:
+        """Optimize from the start values and return the result dictionary (see ``optimize``)."""
         try:
             return self._run()
         finally:
@@ -614,7 +644,7 @@ class Optimizer:
         return min(feas, key=lambda z: self._obj_value(z, self.cache[self._key(z)]["metrics"]))
 
     # ---------------------------------------------------------- shadow prices
-    def multipliers(self, z):
+    def multipliers(self, z: np.ndarray) -> list[dict]:
         """Estimate which limits bind at z and what relaxing each one by one unit is worth."""
         z = np.asarray(z, float)
         hit = self._evaluate(z, need_grad=True)
@@ -678,7 +708,23 @@ class Optimizer:
         return out
 
 
-def optimize(problem: Problem, progress=None, cancel=None, runner=None) -> dict:
+def optimize(
+    problem: Problem,
+    progress: Optional[Callable[[dict], None]] = None,
+    cancel: Optional[Callable[[], bool]] = None,
+    runner: BatchRunner | None = None,
+) -> dict:
+    """Find the best operating point of ``problem``.
+
+    Returns a dictionary with, among others: ``start`` and ``optimum`` (values, objective,
+    metrics, flows, m-values and limit status), ``feasible``, ``message``, ``history`` (one
+    entry per accepted iteration), ``binding`` (limits that bind and what relaxing each is
+    worth), ``evaluations`` (CSS simulations), ``elapsed`` (s) and ``optimum_config`` (the
+    best setup as an SMB simulator setup dictionary).
+
+    On macOS and Windows, call it under ``if __name__ == "__main__":`` when it may use
+    several processes (``problem.workers`` other than 1).
+    """
     return Optimizer(problem, progress=progress, cancel=cancel, runner=runner).run()
 
 
@@ -703,7 +749,7 @@ def point_view(problem: Problem, values: dict, point: dict) -> dict:
     }
 
 
-def simulate_point(problem: Problem, values: dict, tol=1e-7) -> dict:
+def simulate_point(problem: Problem, values: dict, tol: float = 1e-7) -> dict:
     """CSS of one operating point (no optimization)."""
     cfg = problem.config_at(values)
     r = BatchSimulator([cfg]).css(tol=tol)

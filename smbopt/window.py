@@ -19,13 +19,18 @@ point meets the product specifications.
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+
 import numpy as np
 
 from smbsim import SMBConfig
 from .problem import Problem, METRICS
 
+if TYPE_CHECKING:
+    from .optimizer import BatchRunner
 
-def henry_constants(cfg: SMBConfig) -> list:
+
+def henry_constants(cfg: SMBConfig) -> list[dict]:
     """dq*/dC of every non-desorbent component, at infinite dilution in the desorbent."""
     cD = np.array([c.des_frac * c.rho for c in cfg.components])
     denom = 1.0 + sum(c.keq * x for c, x in zip(cfg.components, cD))
@@ -35,6 +40,7 @@ def henry_constants(cfg: SMBConfig) -> list:
 
 
 def is_classic(cfg: SMBConfig) -> bool:
+    """True for a closed-loop four-zone unit with ports D, E, F, R (raffinate as balance outlet)."""
     kinds = [(p.zone, p.kind, bool(p.balance)) for p in cfg.ports]
     return (
         not cfg.open_loop
@@ -45,13 +51,15 @@ def is_classic(cfg: SMBConfig) -> bool:
     )
 
 
-def flows_from_m(cfg: SMBConfig, m, t_star):
+def flows_from_m(cfg: SMBConfig, m: Sequence[float], t_star: float) -> dict[str, float]:
+    """Zone I flow and port flows (D, E, F, R) of a classic unit with m-values ``m`` and switch time ``t_star``."""
     V, eps = cfg.length * cfg.area, cfg.porosity
     Q = [(mj * (1 - eps) * V + eps * V) / t_star for mj in m]
     return {"Q1": Q[0], "QD": Q[0] - Q[3], "QE": Q[0] - Q[1], "QF": Q[2] - Q[1], "QR": Q[2] - Q[3]}
 
 
-def apply_m(cfg: SMBConfig, m, t_star) -> SMBConfig:
+def apply_m(cfg: SMBConfig, m: Sequence[float], t_star: float) -> SMBConfig:
+    """A copy of ``cfg`` operated at m-values ``m`` and switch time ``t_star``."""
     f = flows_from_m(cfg, m, t_star)
     c = SMBConfig.from_dict(cfg.to_dict())
     c.Q1, c.step_time = f["Q1"], t_star
@@ -68,15 +76,20 @@ def apply_m(cfg: SMBConfig, m, t_star) -> SMBConfig:
 def scan(
     problem: Problem,
     values: dict,
-    n=10,
-    m2_range=None,
-    m3_range=None,
-    runner=None,
-    warm=None,
-    progress=None,
-    cancel=None,
+    n: int = 10,
+    m2_range: Optional[tuple[float, float]] = None,
+    m3_range: Optional[tuple[float, float]] = None,
+    runner: "BatchRunner | None" = None,
+    warm: Any = None,
+    progress: Optional[Callable[[dict], None]] = None,
+    cancel: Optional[Callable[[], bool]] = None,
 ) -> dict:
-    """Simulate an n x n grid in the (m2, m3) plane (points with m3 > m2 only)."""
+    """Simulate an n x n grid in the (m2, m3) plane (points with m3 > m2 only).
+
+    m1, m4 and the switch time stay at the operating point ``values``.  Each grid cell is
+    simulated to cyclic steady state with the full model and marked feasible when it meets
+    every enabled purity and recovery limit of ``problem``.
+    """
     from .optimizer import BatchRunner
 
     cfg = problem.config_at(values)
