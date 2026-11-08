@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Launch the SMB Optimizer Suite in your web browser.
 
-    python run_suite.py            # opens http://127.0.0.1:8051
-    python run_suite.py --port 9001 --no-browser
+python run_suite.py            # opens http://127.0.0.1:8051
+python run_suite.py --port 9001 --no-browser
 """
+
 import argparse
 import sys
 import threading

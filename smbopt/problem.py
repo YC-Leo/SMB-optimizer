@@ -11,6 +11,7 @@ A problem has four parts:
   largest and smallest flow allowed in any zone (pressure drop and pump range), and an
   optional limit on desorbent use.
 """
+
 from __future__ import annotations
 
 import copy
@@ -23,8 +24,12 @@ from smbsim.config import ROMAN
 from smbsim.config import INLET_KINDS
 
 METRICS = ("extract_purity", "extract_recovery", "raffinate_purity", "raffinate_recovery")
-METRIC_LABEL = {"extract_purity": "Extract purity", "extract_recovery": "Extract recovery",
-                "raffinate_purity": "Raffinate purity", "raffinate_recovery": "Raffinate recovery"}
+METRIC_LABEL = {
+    "extract_purity": "Extract purity",
+    "extract_recovery": "Extract recovery",
+    "raffinate_purity": "Raffinate purity",
+    "raffinate_recovery": "Raffinate recovery",
+}
 OBJECTIVES = {
     "max_feed": "Maximize feed throughput",
     "min_desorbent": "Minimize desorbent use (desorbent / feed)",
@@ -38,7 +43,7 @@ KIND_LABEL = {"desorbent": "Desorbent in", "feed": "Feed in", "extract": "Extrac
 
 @dataclass
 class Variable:
-    key: str                  # 'Q1' | 'port:<index>' | 'step_time'
+    key: str  # 'Q1' | 'port:<index>' | 'step_time'
     label: str
     unit: str
     start: float
@@ -49,26 +54,26 @@ class Variable:
 
 @dataclass
 class Spec:
-    metric: str               # one of METRICS
-    minimum: float = 90.0     # %
+    metric: str  # one of METRICS
+    minimum: float = 90.0  # %
     enabled: bool = True
 
 
 @dataclass
 class Problem:
-    process: dict                                   # SMBConfig.to_dict()
+    process: dict  # SMBConfig.to_dict()
     variables: List[Variable]
     objective: str = "max_feed"
     specs: List[Spec] = field(default_factory=lambda: [Spec(m, 90.0, m.endswith("purity")) for m in METRICS])
-    max_zone_flow: Optional[float] = 7.0            # mL/min, pressure-drop limit (None = no limit)
-    min_zone_flow: float = 0.01                     # mL/min, smallest flow in any zone or balance outlet
-    max_desorbent_ratio: Optional[float] = None     # desorbent / feed upper limit (None = no limit)
+    max_zone_flow: Optional[float] = 7.0  # mL/min, pressure-drop limit (None = no limit)
+    min_zone_flow: float = 0.01  # mL/min, smallest flow in any zone or balance outlet
+    max_desorbent_ratio: Optional[float] = None  # desorbent / feed upper limit (None = no limit)
     # solver settings
     max_iterations: int = 40
-    css_tol: float = 1e-8                           # CSS tolerance for every evaluation
-    fd_step: float = 0.001                          # relative finite-difference step
-    ftol: float = 1e-6                              # SLSQP stopping tolerance (scaled objective)
-    workers: int = 0                                # parallel processes (0 = automatic)
+    css_tol: float = 1e-8  # CSS tolerance for every evaluation
+    fd_step: float = 0.001  # relative finite-difference step
+    ftol: float = 1e-6  # SLSQP stopping tolerance (scaled objective)
+    workers: int = 0  # parallel processes (0 = automatic)
 
     # ------------------------------------------------------------- mapping
     def base_config(self) -> SMBConfig:
@@ -98,8 +103,13 @@ class Problem:
     def flows(cfg: SMBConfig) -> dict:
         plan = cfg.flow_plan()
         feed, des = cfg.total_flow("feed"), cfg.total_flow("desorbent")
-        return {"zone_flows": list(plan["zone_flows"]), "balance_flow": plan["QB"], "feed": feed, "desorbent": des,
-                "desorbent_ratio": des / feed if feed > 0 else math.inf}
+        return {
+            "zone_flows": list(plan["zone_flows"]),
+            "balance_flow": plan["QB"],
+            "feed": feed,
+            "desorbent": des,
+            "desorbent_ratio": des / feed if feed > 0 else math.inf,
+        }
 
     def objective_is_analytic(self) -> bool:
         return self.objective in ("max_feed", "min_desorbent")
@@ -167,14 +177,34 @@ def default_variables(cfg: SMBConfig, spread: float = 0.3) -> List[Variable]:
     labels = cfg.port_labels()
     out = []
     if not cfg.open_loop:
-        out.append(Variable("Q1", "Zone I flow", "mL/min", cfg.Q1, round(cfg.Q1 * (1 - spread), 4), round(cfg.Q1 * (1 + spread), 4)))
+        out.append(
+            Variable(
+                "Q1", "Zone I flow", "mL/min", cfg.Q1, round(cfg.Q1 * (1 - spread), 4), round(cfg.Q1 * (1 + spread), 4)
+            )
+        )
     for i, p in enumerate(cfg.ports):
         if p.balance and p.kind not in INLET_KINDS:
             continue
-        out.append(Variable(f"port:{i}", f"{labels[i]} · {KIND_LABEL[p.kind]} (zone {ROMAN[p.zone]})", "mL/min",
-                            p.flow, round(p.flow * (1 - spread), 4), round(p.flow * (1 + spread), 4)))
-    out.append(Variable("step_time", "Switch time t*", "min", cfg.step_time,
-                        round(cfg.step_time * (1 - spread), 4), round(cfg.step_time * (1 + spread), 4)))
+        out.append(
+            Variable(
+                f"port:{i}",
+                f"{labels[i]} · {KIND_LABEL[p.kind]} (zone {ROMAN[p.zone]})",
+                "mL/min",
+                p.flow,
+                round(p.flow * (1 - spread), 4),
+                round(p.flow * (1 + spread), 4),
+            )
+        )
+    out.append(
+        Variable(
+            "step_time",
+            "Switch time t*",
+            "min",
+            cfg.step_time,
+            round(cfg.step_time * (1 - spread), 4),
+            round(cfg.step_time * (1 + spread), 4),
+        )
+    )
     return out
 
 
@@ -195,16 +225,21 @@ def benchmark_feed_problem() -> Problem:
     """
     cfg = case_2(flow_model="volume_change")
     v = default_variables(cfg)
-    r = 0.15 ** 0.5
+    r = 0.15**0.5
     _set(v, "Q1", 6.96 - 0.5, 6.96 + 0.5)
-    _set(v, "port:0", 2.14 - 0.5, 2.14 + 0.5)          # desorbent
-    _set(v, "port:1", round(0.721 - r, 6), round(0.721 + r, 6))   # extract
-    _set(v, "port:2", 0.0, round(0.24 + r, 6))          # feed
+    _set(v, "port:0", 2.14 - 0.5, 2.14 + 0.5)  # desorbent
+    _set(v, "port:1", round(0.721 - r, 6), round(0.721 + r, 6))  # extract
+    _set(v, "port:2", 0.0, round(0.24 + r, 6))  # feed
     _set(v, "step_time", 0.5, 4.0)
-    specs = [Spec("extract_purity", 90.0, True), Spec("extract_recovery", 90.0, False),
-             Spec("raffinate_purity", 90.0, True), Spec("raffinate_recovery", 90.0, False)]
-    return Problem(process=cfg.to_dict(), variables=v, objective="max_feed", specs=specs,
-                   max_zone_flow=7.0, min_zone_flow=0.01)
+    specs = [
+        Spec("extract_purity", 90.0, True),
+        Spec("extract_recovery", 90.0, False),
+        Spec("raffinate_purity", 90.0, True),
+        Spec("raffinate_recovery", 90.0, False),
+    ]
+    return Problem(
+        process=cfg.to_dict(), variables=v, objective="max_feed", specs=specs, max_zone_flow=7.0, min_zone_flow=0.01
+    )
 
 
 def desorbent_problem() -> Problem:
@@ -225,16 +260,29 @@ def case1_feed_problem() -> Problem:
     _set(v, "port:1", 1.5, 5.0)
     _set(v, "port:2", 0.5, 3.0)
     _set(v, "step_time", 1.0, 4.0)
-    specs = [Spec("extract_purity", 98.0, True), Spec("extract_recovery", 99.0, True),
-             Spec("raffinate_purity", 99.0, False), Spec("raffinate_recovery", 99.0, True)]
-    return Problem(process=cfg.to_dict(), variables=v, objective="max_feed", specs=specs,
-                   max_zone_flow=7.0, min_zone_flow=0.01)
+    specs = [
+        Spec("extract_purity", 98.0, True),
+        Spec("extract_recovery", 99.0, True),
+        Spec("raffinate_purity", 99.0, False),
+        Spec("raffinate_recovery", 99.0, True),
+    ]
+    return Problem(
+        process=cfg.to_dict(), variables=v, objective="max_feed", specs=specs, max_zone_flow=7.0, min_zone_flow=0.01
+    )
 
 
 PROBLEMS = {
-    "case2_feed": ("Case 2 · maximize feed (benchmark problem)", "7 components · start at Case 2, purities ≥ 90 % · benchmark optimum is Case 3", benchmark_feed_problem),
+    "case2_feed": (
+        "Case 2 · maximize feed (benchmark problem)",
+        "7 components · start at Case 2, purities ≥ 90 % · benchmark optimum is Case 3",
+        benchmark_feed_problem,
+    ),
     "case2_desorbent": ("Case 2 · minimize desorbent", "7 components · fixed feed, purities ≥ 90 %", desorbent_problem),
-    "case1_feed": ("Case 1 · maximize feed", "3 components · extract purity ≥ 98 %, both recoveries ≥ 99 % · the start misses the purity", case1_feed_problem),
+    "case1_feed": (
+        "Case 1 · maximize feed",
+        "3 components · extract purity ≥ 98 %, both recoveries ≥ 99 % · the start misses the purity",
+        case1_feed_problem,
+    ),
 }
 
 

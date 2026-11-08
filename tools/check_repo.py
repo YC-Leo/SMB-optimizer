@@ -16,6 +16,7 @@ It looks for:
 
 Exit status 1 if anything is found.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,21 +32,66 @@ MAX_BYTES = 1_000_000
 BINARY_OK = {".png", ".jpg", ".jpeg", ".gif", ".ico"}
 
 HASHED_TERMS = {
-    "099f00917bc1afb4", "0e364c206974b5d9", "11b4e8389f1e31cd", "128a570bb5b8fcc4",
-    "17ad2542900e2065", "196f8d5a6b2c431b", "24fa74107107be23", "2552a9843c49f92b",
-    "26d705c13f4e3e7d", "2863229379aa76de", "31817d49b7a19287", "32bcba2242820d07",
-    "3a3b8b6d6187c9f8", "43f7c210bd0cc1b8", "44c1ca33495ec83d", "46c5eff0c85b54bc",
-    "4978c1d21cf6803f", "52a1ed2b9aa943e3", "59c1de0763e8bdc6", "5c8411654c2cacac",
-    "5e8b96c70a3a5341", "5f3bcd125e89c868", "621391a126b6b417", "63c19a56decbecc0",
-    "6910dd86e5e374cc", "6919ef3b7ee71565", "69cdcc7eb4b306e3", "6a780680a34fd0aa",
-    "6ed9d6a4241b358e", "77604c1de5776604", "79776e274499f6f3", "835dac95bd5bec82",
-    "837246b0a01af625", "84a33a9382b0102c", "868645a03af59110", "872d183b85dbc03b",
-    "88a2f109b13da155", "913822278e279804", "934f5873687909f4", "99c632369210a007",
-    "b47d0768b141fa11", "b55ac8822fb0ce94", "b5b0a575159553a7", "bffe42c79eb4aabf",
-    "c0f27a65b1206839", "c12502295544e34e", "c6131333dd32d284", "c6af8303ff46455a",
-    "c74a66242143ede0", "d42741845745036d", "d47c177149c49a68", "d9411c44d8f08a20",
-    "dbbae1b99a4c320e", "e224e66fb84c63ed", "e905ac9625c5d81e", "ebfd8396e9cacde7",
-    "fe4334dfa89e000c", "fe8001858c58a8f7", "ff2f5af8e933c3a5", "ffddc8fe4bc9ed88",
+    "099f00917bc1afb4",
+    "0e364c206974b5d9",
+    "11b4e8389f1e31cd",
+    "128a570bb5b8fcc4",
+    "17ad2542900e2065",
+    "196f8d5a6b2c431b",
+    "24fa74107107be23",
+    "2552a9843c49f92b",
+    "26d705c13f4e3e7d",
+    "2863229379aa76de",
+    "31817d49b7a19287",
+    "32bcba2242820d07",
+    "3a3b8b6d6187c9f8",
+    "43f7c210bd0cc1b8",
+    "44c1ca33495ec83d",
+    "46c5eff0c85b54bc",
+    "4978c1d21cf6803f",
+    "52a1ed2b9aa943e3",
+    "59c1de0763e8bdc6",
+    "5c8411654c2cacac",
+    "5e8b96c70a3a5341",
+    "5f3bcd125e89c868",
+    "621391a126b6b417",
+    "63c19a56decbecc0",
+    "6910dd86e5e374cc",
+    "6919ef3b7ee71565",
+    "69cdcc7eb4b306e3",
+    "6a780680a34fd0aa",
+    "6ed9d6a4241b358e",
+    "77604c1de5776604",
+    "79776e274499f6f3",
+    "835dac95bd5bec82",
+    "837246b0a01af625",
+    "84a33a9382b0102c",
+    "868645a03af59110",
+    "872d183b85dbc03b",
+    "88a2f109b13da155",
+    "913822278e279804",
+    "934f5873687909f4",
+    "99c632369210a007",
+    "b47d0768b141fa11",
+    "b55ac8822fb0ce94",
+    "b5b0a575159553a7",
+    "bffe42c79eb4aabf",
+    "c0f27a65b1206839",
+    "c12502295544e34e",
+    "c6131333dd32d284",
+    "c6af8303ff46455a",
+    "c74a66242143ede0",
+    "d42741845745036d",
+    "d47c177149c49a68",
+    "d9411c44d8f08a20",
+    "dbbae1b99a4c320e",
+    "e224e66fb84c63ed",
+    "e905ac9625c5d81e",
+    "ebfd8396e9cacde7",
+    "fe4334dfa89e000c",
+    "fe8001858c58a8f7",
+    "ff2f5af8e933c3a5",
+    "ffddc8fe4bc9ed88",
 }
 
 PATTERNS = {
@@ -74,7 +120,9 @@ def candidate_files() -> list[Path]:
     """Every file git would commit: tracked and staged files plus untracked, non-ignored ones."""
     out = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-        cwd=ROOT, capture_output=True, check=True,
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
     ).stdout.decode()
     return sorted({ROOT / p for p in out.split("\0") if p and (ROOT / p).is_file()})
 
@@ -105,11 +153,14 @@ def scan(message: Path | None = None) -> list[str]:
                 problems.append(f"{rel}: binary file outside assets/")
             continue
         if rel == "tools/check_repo.py":
-            continue                       # contains the patterns themselves
+            continue  # contains the patterns themselves
         problems += scan_text(rel, data.decode("utf-8", errors="replace"), hashes)
     if message is not None:
-        text = "\n".join(l for l in message.read_text(encoding="utf-8").splitlines()
-                         if not l.startswith("#") and not l.startswith("Co-Authored-By:"))
+        text = "\n".join(
+            l
+            for l in message.read_text(encoding="utf-8").splitlines()
+            if not l.startswith("#") and not l.startswith("Co-Authored-By:")
+        )
         problems += scan_text("commit message", text, hashes)
     return problems
 

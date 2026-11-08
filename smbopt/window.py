@@ -15,6 +15,7 @@ dilute solutes see the adsorbent.  ``scan`` maps the window with the full model 
 simulates a grid of (m2, m3) points at fixed m1, m4 and switch time and records whether each
 point meets the product specifications.
 """
+
 from __future__ import annotations
 
 import time
@@ -28,14 +29,20 @@ def henry_constants(cfg: SMBConfig) -> list:
     """dq*/dC of every non-desorbent component, at infinite dilution in the desorbent."""
     cD = np.array([c.des_frac * c.rho for c in cfg.components])
     denom = 1.0 + sum(c.keq * x for c, x in zip(cfg.components, cD))
-    return [{"name": c.name, "role": c.role, "H": c.qsat * c.keq / denom}
-            for c in cfg.components if c.role != "desorbent"]
+    return [
+        {"name": c.name, "role": c.role, "H": c.qsat * c.keq / denom} for c in cfg.components if c.role != "desorbent"
+    ]
 
 
 def is_classic(cfg: SMBConfig) -> bool:
     kinds = [(p.zone, p.kind, bool(p.balance)) for p in cfg.ports]
-    return (not cfg.open_loop and len(cfg.zones) == 4 and len(cfg.ports) == 4 and
-            sorted(kinds) == [(0, "desorbent", False), (1, "extract", False), (2, "feed", False), (3, "raffinate", True)])
+    return (
+        not cfg.open_loop
+        and len(cfg.zones) == 4
+        and len(cfg.ports) == 4
+        and sorted(kinds)
+        == [(0, "desorbent", False), (1, "extract", False), (2, "feed", False), (3, "raffinate", True)]
+    )
 
 
 def flows_from_m(cfg: SMBConfig, m, t_star):
@@ -58,10 +65,20 @@ def apply_m(cfg: SMBConfig, m, t_star) -> SMBConfig:
     return c
 
 
-def scan(problem: Problem, values: dict, n=10, m2_range=None, m3_range=None, runner=None, warm=None,
-         progress=None, cancel=None) -> dict:
+def scan(
+    problem: Problem,
+    values: dict,
+    n=10,
+    m2_range=None,
+    m3_range=None,
+    runner=None,
+    warm=None,
+    progress=None,
+    cancel=None,
+) -> dict:
     """Simulate an n x n grid in the (m2, m3) plane (points with m3 > m2 only)."""
     from .optimizer import BatchRunner
+
     cfg = problem.config_at(values)
     if not is_classic(cfg):
         raise ValueError("The operating window map needs a classic closed-loop four-zone layout (D, E, F, R).")
@@ -69,13 +86,15 @@ def scan(problem: Problem, values: dict, n=10, m2_range=None, m3_range=None, run
     m = d["m_values"]
     H = henry_constants(cfg)
     hv = [h["H"] for h in H]
-    w = max(m[2] - m[1], 0.02)                 # zoom on the current operating point
+    w = max(m[2] - m[1], 0.02)  # zoom on the current operating point
     lo, hi = m[1] - 0.7 * w, m[2] + 0.7 * w
+
     def axis(centre, rng):
         a, b = rng
         h = (b - a) / (n - 1)
-        k = int(round((centre - a) / h))          # put the current point on a grid node
+        k = int(round((centre - a) / h))  # put the current point on a grid node
         return centre + h * (np.arange(n) - k)
+
     m2s = axis(m[1], m2_range or (lo, hi))
     m3s = axis(m[2], m3_range or (lo, hi))
     pts, cells = [], []
@@ -85,7 +104,8 @@ def scan(problem: Problem, values: dict, n=10, m2_range=None, m3_range=None, run
                 c = apply_m(cfg, [m[0], a, b, m[3]], cfg.step_time)
                 if c.validate():
                     continue
-                pts.append(c); cells.append((i, j))
+                pts.append(c)
+                cells.append((i, j))
     if not pts:
         raise ValueError("No valid operating points in the chosen range.")
     t0 = time.time()
@@ -99,7 +119,7 @@ def scan(problem: Problem, values: dict, n=10, m2_range=None, m3_range=None, run
                 raise InterruptedError("cancelled")
             if progress:
                 progress({"stage": "scanning", "points": len(pts), "done": k, "elapsed": time.time() - t0})
-            part, _ = runner.run(pts[k:k + size], warm, max(problem.css_tol * 100, 1e-6), cancel=cancel)
+            part, _ = runner.run(pts[k : k + size], warm, max(problem.css_tol * 100, 1e-6), cancel=cancel)
             res += part
     finally:
         if own:
@@ -109,8 +129,27 @@ def scan(problem: Problem, values: dict, n=10, m2_range=None, m3_range=None, run
     for (i, j), r, c in zip(cells, res, pts):
         met = {k: r["metrics"][k] for k in METRICS}
         margin = min([met[s.metric] - s.minimum for s in specs] or [0.0])
-        grid.append({"i": i, "j": j, "m2": float(m2s[i]), "m3": float(m3s[j]), "metrics": met,
-                     "feed": c.total_flow("feed"), "feasible": margin >= 0, "margin": margin})
-    return {"m2": m2s.tolist(), "m3": m3s.tolist(), "m1": m[0], "m4": m[3], "t_star": cfg.step_time,
-            "grid": grid, "henry": H, "point": {"m2": m[1], "m3": m[2]},
-            "specs": [{"metric": s.metric, "minimum": s.minimum} for s in specs], "elapsed": time.time() - t0}
+        grid.append(
+            {
+                "i": i,
+                "j": j,
+                "m2": float(m2s[i]),
+                "m3": float(m3s[j]),
+                "metrics": met,
+                "feed": c.total_flow("feed"),
+                "feasible": margin >= 0,
+                "margin": margin,
+            }
+        )
+    return {
+        "m2": m2s.tolist(),
+        "m3": m3s.tolist(),
+        "m1": m[0],
+        "m4": m[3],
+        "t_star": cfg.step_time,
+        "grid": grid,
+        "henry": H,
+        "point": {"m2": m[1], "m3": m[2]},
+        "specs": [{"metric": s.metric, "minimum": s.minimum} for s in specs],
+        "elapsed": time.time() - t0,
+    }

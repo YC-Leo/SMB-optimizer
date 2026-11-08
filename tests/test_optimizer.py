@@ -1,4 +1,5 @@
 """Quick checks of the optimizer building blocks.   python -m pytest -q"""
+
 import sys
 from pathlib import Path
 
@@ -37,7 +38,7 @@ def test_config_mapping():
     p = problem_preset("case2_feed")
     cfg = p.config_at({"Q1": 6.5, "port:2": 0.3, "step_time": 2.0})
     assert cfg.Q1 == 6.5 and cfg.ports[2].flow == 0.3 and cfg.step_time == 2.0
-    assert cfg.ports[0].flow == 2.14            # untouched variables keep their start value
+    assert cfg.ports[0].flow == 2.14  # untouched variables keep their start value
 
 
 def test_batch_matches_engine_bitwise():
@@ -59,7 +60,9 @@ def test_batch_members_are_independent():
     Cb, Qb = big.initial_state()
     Cb, Qb, out, qb = big.advance(Cb, Qb)
     for k, c in enumerate(cfgs):
-        one = BatchSimulator([c]); one.nsub = big.nsub; one.dt = one.T / one.nsub
+        one = BatchSimulator([c])
+        one.nsub = big.nsub
+        one.dt = one.T / one.nsub
         C1, Q1 = one.initial_state()
         C1, Q1, o1, q1 = one.advance(C1, Q1)
         assert np.array_equal(Cb[:, k], C1[:, 0]) and np.array_equal(out[k], o1[0])
@@ -69,7 +72,8 @@ def test_accelerated_css_matches_engine():
     cfg = case_2()
     r = BatchSimulator([cfg]).css(tol=1e-8)
     assert r["converged"]
-    cfg.css_tol = 1e-8; cfg.max_cycles = 400
+    cfg.css_tol = 1e-8
+    cfg.max_cycles = 400
     ref = run(cfg)["metrics"]
     for k in ("extract_purity", "extract_recovery", "raffinate_purity", "raffinate_recovery"):
         assert abs(r["metrics"][0][k] - ref[k]) < 1e-3

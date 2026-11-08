@@ -1,4 +1,5 @@
 """Local web server for the SMB Optimizer Suite (Python standard library only)."""
+
 from __future__ import annotations
 
 import json
@@ -11,15 +12,32 @@ from pathlib import Path
 import numpy as np
 
 from smbsim import SMBConfig, ISOTHERMS
-from smbopt import (Problem, PROBLEMS, problem_preset, OBJECTIVES, METRICS, METRIC_LABEL, default_variables,
-                    Optimizer, BatchRunner, Cancelled, point_view, __version__)
+from smbopt import (
+    Problem,
+    PROBLEMS,
+    problem_preset,
+    OBJECTIVES,
+    METRICS,
+    METRIC_LABEL,
+    default_variables,
+    Optimizer,
+    BatchRunner,
+    Cancelled,
+    point_view,
+    __version__,
+)
 from smbopt.optimizer import default_workers
 from smbopt.window import scan, henry_constants, is_classic
 
 STATIC = Path(__file__).parent / "static"
-MIME = {".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8",
-        ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png",
-        ".json": "application/json"}
+MIME = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".json": "application/json",
+}
 
 
 def _clean(o):
@@ -43,6 +61,7 @@ def _clean(o):
 
 class Runner:
     """One pool of worker processes shared by all jobs (rebuilt when the worker count changes)."""
+
     lock = threading.Lock()
     runner = None
 
@@ -80,8 +99,14 @@ class Job:
                 res["optimum_view"] = point_view(self.problem, res["optimum"]["values"], pts["optimum"])
                 res["problem"] = self.problem.to_dict()
             else:
-                res = scan(self.problem, self.extra["values"], n=self.extra.get("n", 10), runner=runner,
-                           progress=self._on_progress, cancel=lambda: self.cancelled)
+                res = scan(
+                    self.problem,
+                    self.extra["values"],
+                    n=self.extra.get("n", 10),
+                    runner=runner,
+                    progress=self._on_progress,
+                    cancel=lambda: self.cancelled,
+                )
             with self.lock:
                 self.result = _clean(res)
                 self.status = "done"
@@ -99,8 +124,14 @@ class Job:
 
     def snapshot(self):
         with self.lock:
-            return {"id": self.id, "kind": self.kind, "status": self.status, "progress": self.progress,
-                    "result": self.result, "error": self.error}
+            return {
+                "id": self.id,
+                "kind": self.kind,
+                "status": self.status,
+                "progress": self.progress,
+                "result": self.result,
+                "error": self.error,
+            }
 
 
 JOBS: dict[str, Job] = {}
@@ -111,8 +142,14 @@ def problem_info(p: Problem) -> dict:
     cfg = p.config_at(p.start_values())
     flows = p.flows(cfg)
     d = cfg.derived()
-    return {"derived": d, "flows": flows, "henry": henry_constants(cfg), "classic": is_classic(cfg),
-            "labels": cfg.port_labels(), "n_columns": cfg.n_columns}
+    return {
+        "derived": d,
+        "flows": flows,
+        "henry": henry_constants(cfg),
+        "classic": is_classic(cfg),
+        "labels": cfg.port_labels(),
+        "n_columns": cfg.n_columns,
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -133,11 +170,22 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         if path == "/api/defaults":
-            return self._send(200, _clean({
-                "version": __version__, "objectives": OBJECTIVES, "metrics": METRIC_LABEL,
-                "workers": default_workers(),
-                "isotherms": {k: {kk: vv for kk, vv in v.items() if kk != "fn"} for k, v in ISOTHERMS.items()},
-                "problems": {k: {"label": v[0], "summary": v[1], "problem": v[2]().to_dict()} for k, v in PROBLEMS.items()}}))
+            return self._send(
+                200,
+                _clean(
+                    {
+                        "version": __version__,
+                        "objectives": OBJECTIVES,
+                        "metrics": METRIC_LABEL,
+                        "workers": default_workers(),
+                        "isotherms": {k: {kk: vv for kk, vv in v.items() if kk != "fn"} for k, v in ISOTHERMS.items()},
+                        "problems": {
+                            k: {"label": v[0], "summary": v[1], "problem": v[2]().to_dict()}
+                            for k, v in PROBLEMS.items()
+                        },
+                    }
+                ),
+            )
         if path.startswith("/api/job/"):
             job = JOBS.get(path.rsplit("/", 1)[-1])
             return self._send(200, job.snapshot()) if job else self._send(404, {"error": "unknown job"})
