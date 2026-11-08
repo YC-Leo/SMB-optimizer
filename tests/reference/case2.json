@@ -1,0 +1,68 @@
+{
+  "preset": "case2_feed",
+  "objective": "max_feed",
+  "feasible": true,
+  "start": {
+    "values": {
+      "Q1": 6.96,
+      "port:0": 2.14,
+      "port:1": 0.721,
+      "port:2": 0.24,
+      "step_time": 1.893
+    },
+    "objective": 0.24,
+    "metrics": {
+      "extract_purity": 91.29786481352672,
+      "extract_recovery": 91.79999668331564,
+      "raffinate_purity": 96.03537218869452,
+      "raffinate_recovery": 95.73565763896777
+    },
+    "m_values": [
+      0.8464250377580514,
+      0.5488058409317739,
+      0.6478746443136136,
+      -0.036938459063354835
+    ],
+    "feed": 0.24,
+    "desorbent_ratio": 8.916666666666668
+  },
+  "optimum": {
+    "values": {
+      "Q1": 7.000000000000004,
+      "port:0": 1.6400000000000823,
+      "port:1": 0.8307373199873956,
+      "port:2": 0.3876778976098027,
+      "step_time": 1.897838106447116
+    },
+    "objective": 0.3876778976098027,
+    "metrics": {
+      "extract_purity": 90.00157822270222,
+      "extract_recovery": 77.93643385304817,
+      "raffinate_purity": 90.00204760967311,
+      "raffinate_recovery": 95.7868361526505
+    },
+    "m_values": [
+      0.8703214713434579,
+      0.5265277465646226,
+      0.6869650174407212,
+      0.19162112278337043
+    ],
+    "feed": 0.3876778976098027,
+    "desorbent_ratio": 4.230315966196092
+  },
+  "binding": [
+    "D · Desorbent in (zone I) at its lower bound (1.64 mL/min)",
+    "Extract purity ≥ 90 %",
+    "Raffinate purity ≥ 90 %",
+    "Zone I flow ≤ 7 mL/min"
+  ],
+  "produced_with": {
+    "python": "3.15.2",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "workers": 1,
+    "iterations": 11,
+    "simulations": 86,
+    "seconds": 160
+  }
+}

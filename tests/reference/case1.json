@@ -1,0 +1,66 @@
+{
+  "preset": "case1_feed",
+  "objective": "max_feed",
+  "feasible": true,
+  "start": {
+    "values": {
+      "Q1": 6.85,
+      "port:0": 5.71,
+      "port:1": 3.58,
+      "port:2": 1.32,
+      "step_time": 2.33333
+    },
+    "objective": 1.32,
+    "metrics": {
+      "extract_purity": 96.91934043379298,
+      "extract_recovery": 99.91655609718059,
+      "raffinate_purity": 99.98540308074388,
+      "raffinate_recovery": 99.44741823905844
+    },
+    "m_values": [
+      1.2755851705018681,
+      0.18132446692703635,
+      0.5847948939434547,
+      -0.46973008575854813
+    ],
+    "feed": 1.32,
+    "desorbent_ratio": 4.325757575757575
+  },
+  "optimum": {
+    "values": {
+      "Q1": 6.857789816590209,
+      "port:0": 5.709969953165897,
+      "port:1": 3.5721369882528204,
+      "port:2": 2.229265152,
+      "step_time": 2.345633604146106
+    },
+    "objective": 2.229265152,
+    "metrics": {
+      "extract_purity": 98.0051094787329,
+      "extract_recovery": 99.0004111117341,
+      "raffinate_purity": 99.82577893356611,
+      "raffinate_recovery": 99.64939014597192
+    },
+    "m_values": [
+      1.2890191494104153,
+      0.1914045068897751,
+      0.8763933751618733,
+      -0.465489888053242
+    ],
+    "feed": 2.229265152,
+    "desorbent_ratio": 2.5613686860188705
+  },
+  "binding": [
+    "Extract purity ≥ 98 %",
+    "Extract recovery ≥ 99 %"
+  ],
+  "produced_with": {
+    "python": "3.15.2",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "workers": 1,
+    "iterations": 4,
+    "simulations": 50,
+    "seconds": 160
+  }
+}
