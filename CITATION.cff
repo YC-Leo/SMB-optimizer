@@ -1,12 +1,34 @@
 cff-version: 1.2.0
-title: SMB Optimizer Suite
+title: "SMB-optimizer: operating-condition optimizer for simulated moving bed chromatography"
 message: If you use this software, please cite it using this metadata.
 type: software
 authors:
   - given-names: Yadong (Leo)
     family-names: Chiang
 version: 1.0.0
+date-released: 2026-11-08
 license: MIT
 repository-code: https://github.com/YC-Leo/SMB-optimizer
 url: https://github.com/YC-Leo/SMB-optimizer
-date-released: 2026-11-01
+abstract: >-
+  An open-source optimizer that finds the flow rates and switch time of a simulated moving bed (SMB)
+  chromatography unit that maximize feed throughput or minimize desorbent use while the extract and
+  raffinate meet purity and recovery targets. Every candidate operating point is simulated to cyclic
+  steady state with a full SMB model (competitive Langmuir isotherm, linear-driving-force mass
+  transfer, axial dispersion, optional volume change), and a trust-region SQP method searches the
+  operating space. Written in Python with NumPy and SciPy.
+keywords:
+  - simulated moving bed
+  - chromatography
+  - process optimization
+  - separation
+  - chemical engineering
+  - adsorption
+references:
+  - type: software
+    title: "SMB-simulator: simulated moving bed chromatography simulator"
+    authors:
+      - given-names: Yadong (Leo)
+        family-names: Chiang
+    repository-code: https://github.com/YC-Leo/SMB-simulator
+    url: https://github.com/YC-Leo/SMB-simulator

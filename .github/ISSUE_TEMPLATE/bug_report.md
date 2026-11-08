@@ -16,21 +16,26 @@ Describe the bug clearly.
 2.
 3.
 
+If possible, attach the problem file (`smb-optimizer example case1` gives a starting point) and the
+command you ran. Please remove anything you are not free to share.
+
 ## Expected behavior
 
 What did you expect to happen?
 
 ## Actual behavior
 
-What happened instead?
+What happened instead? Include the full error message, if any.
 
 ## Environment
 
 - OS:
 - Python version:
-- Run mode: (Original / Conservative)
+- SMB-optimizer version (`smb-optimizer --version`):
+- How you ran it: (command line / web app / Python)
+- Numerical mode: (Original / Conservative)
 - Flow model: (Constant flow / Volume change)
 
 ## Additional context
 
-Include logs, screenshots, or setup JSON if helpful.
+Logs, screenshots or `summary.json` if helpful.

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: SMB-simulator
+    url: https://github.com/YC-Leo/SMB-simulator/issues
+    about: Questions or bugs about the simulation model itself (isotherms, numerical modes, single runs) belong there.
