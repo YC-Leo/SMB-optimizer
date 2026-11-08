@@ -1,47 +1,68 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "smb-optimizer"
 version = "1.0.0"
-description = "Operating-condition optimizer for simulated moving bed (SMB) chromatography, with a local web app"
+description = "Operating-condition optimizer for simulated moving bed (SMB) chromatography: best flows and switch time for purity and recovery targets"
 readme = "README.md"
-requires-python = ">=3.9"
-license = { text = "MIT" }
-authors = [
-  { name = "Yadong (Leo) Chiang" }
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Yadong (Leo) Chiang" }]
+keywords = [
+  "simulated-moving-bed", "chromatography", "process-optimization", "separation",
+  "chemical-engineering", "adsorption", "sqp",
 ]
+# Tested ranges; requirements.txt pins the exact versions used in CI.
 dependencies = [
-  "numpy>=1.21",
-  "scipy>=1.7"
+  "numpy>=1.24,<3",
+  "scipy>=1.10,<2",
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Education",
   "Operating System :: OS Independent",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering",
-  "Topic :: Scientific/Engineering :: Chemistry"
+  "Topic :: Scientific/Engineering :: Chemistry",
 ]
 
 [project.optional-dependencies]
-test = ["pytest"]
+yaml = ["pyyaml>=6.0"]
+test = ["pytest>=8"]
+dev = ["pytest>=8", "black==26.10.1", "pyyaml>=6.0"]
 
 [project.urls]
 Homepage = "https://github.com/YC-Leo/SMB-optimizer"
 Repository = "https://github.com/YC-Leo/SMB-optimizer"
 Issues = "https://github.com/YC-Leo/SMB-optimizer/issues"
+Changelog = "https://github.com/YC-Leo/SMB-optimizer/blob/main/CHANGELOG.md"
+"SMB simulator" = "https://github.com/YC-Leo/SMB-simulator"
 
 [tool.setuptools]
-packages = ["smbsim", "smbopt", "webapp"]
+packages = ["smbsim", "smbopt", "smbopt.webapp"]
 
 [tool.setuptools.package-data]
-webapp = ["static/*"]
+"smbopt.webapp" = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: full optimizations of the example cases (several minutes)"]
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
+# smbsim/ is kept byte-identical to the SMB-simulator repository and is not reformatted here.
+extend-exclude = "^/smbsim/"

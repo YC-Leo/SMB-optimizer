@@ -139,8 +139,8 @@ smbopt/
   batch.py           batched CSS solver with Anderson acceleration
   optimizer.py       trust-region SQP, gradients, multipliers, process pool
   window.py          (m2, m3) operating-window map, Henry constants
-webapp/              local web server (Python standard library) and UI
-  static/            HTML/CSS/JS with hand-written SVG charts, no external libraries
+  webapp/            local web server (Python standard library) and UI
+    static/            HTML/CSS/JS with hand-written SVG charts, no external libraries
 run_suite.py         launcher
 validation/          benchmark optimum
 tests/               quick checks

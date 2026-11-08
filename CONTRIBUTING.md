@@ -53,4 +53,4 @@ Thank you for your interest in contributing to the SMB Optimizer Suite.
    `con_value` / `con_grad` (`smbopt/optimizer.py`). Analytic quantities (flows, ratios) should get
    analytic gradients; anything that needs the CSS should use the metrics and gradients returned by
    `Optimizer._evaluate`.
-3. Expose it in the web app (`webapp/static/index.html`, `app.js`).
+3. Expose it in the web app (`smbopt/webapp/static/index.html`, `app.js`).

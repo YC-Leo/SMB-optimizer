@@ -15,7 +15,7 @@ try:
 except ImportError:
     sys.exit("NumPy and SciPy are required. Install them with:  python -m pip install -r requirements.txt")
 
-from webapp.server import serve
+from smbopt.webapp.server import serve
 
 
 def main():
