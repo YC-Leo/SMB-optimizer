@@ -10,9 +10,9 @@ Every candidate operating point is simulated with the full SMB model to cyclic s
 
 This is the companion to the [SMB Simulator Suite](https://github.com/YC-Leo/SMB-simulator), which runs one operating point and shows the unit in motion. The optimizer uses the same simulation engine (`smbsim/`) and reads and writes the same setup files.
 
-![Optimizer](docs/screenshot_optimizer.png)
+![Optimizer](assets/screenshot_optimizer.png)
 
-![Operating window](docs/screenshot_window.png)
+![Operating window](assets/screenshot_window.png)
 
 ## Quick start
 
