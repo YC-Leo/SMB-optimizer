@@ -1,0 +1,169 @@
+{
+  "process": {
+    "components": [
+      {
+        "name": "Unwanted",
+        "role": "raffinate",
+        "qsat": 0.493346,
+        "keq": 11.6578,
+        "kap": 1.0,
+        "rho": 0.81,
+        "feed_frac": 0.865,
+        "des_frac": 0.0
+      },
+      {
+        "name": "Wanted",
+        "role": "extract",
+        "qsat": 0.395771,
+        "keq": 70.8559,
+        "kap": 1.0,
+        "rho": 0.903,
+        "feed_frac": 0.135,
+        "des_frac": 0.0
+      },
+      {
+        "name": "Solvent",
+        "role": "desorbent",
+        "qsat": 0.327696,
+        "keq": 79.24,
+        "kap": 1.0,
+        "rho": 0.902,
+        "feed_frac": 0.0,
+        "des_frac": 1.0
+      }
+    ],
+    "isotherm": "competitive_langmuir",
+    "scheme": "original",
+    "flow_model": "constant",
+    "zones": [
+      5,
+      4,
+      4,
+      3
+    ],
+    "ports": [
+      {
+        "kind": "desorbent",
+        "zone": 0,
+        "flow": 5.71,
+        "balance": false
+      },
+      {
+        "kind": "extract",
+        "zone": 1,
+        "flow": 3.58,
+        "balance": false
+      },
+      {
+        "kind": "feed",
+        "zone": 2,
+        "flow": 1.32,
+        "balance": false
+      },
+      {
+        "kind": "raffinate",
+        "zone": 3,
+        "flow": 0.0,
+        "balance": true
+      }
+    ],
+    "open_loop": false,
+    "Q1": 6.85,
+    "step_time": 2.33333,
+    "length": 20.0,
+    "radius": 0.47000006190856475,
+    "dead_length": 2.0,
+    "dead_nodes": 8,
+    "porosity_spec": "total",
+    "porosity_total": 0.45,
+    "bed_porosity": 0.387,
+    "particle_porosity": 0.461,
+    "dispersion_spec": "peclet",
+    "peclet": 1000.0,
+    "particle_diameter": 100.0,
+    "particle_peclet": 0.5,
+    "nodes": 22,
+    "cells": 20,
+    "css_tol": 1e-05,
+    "max_cycles": 150,
+    "accelerate": true
+  },
+  "variables": [
+    {
+      "key": "Q1",
+      "label": "Zone I flow",
+      "unit": "mL/min",
+      "start": 6.85,
+      "lower": 4.0,
+      "upper": 7.0,
+      "optimize": true
+    },
+    {
+      "key": "port:0",
+      "label": "D · Desorbent in (zone I)",
+      "unit": "mL/min",
+      "start": 5.71,
+      "lower": 3.0,
+      "upper": 7.0,
+      "optimize": true
+    },
+    {
+      "key": "port:1",
+      "label": "E · Extract out (zone II)",
+      "unit": "mL/min",
+      "start": 3.58,
+      "lower": 1.5,
+      "upper": 5.0,
+      "optimize": true
+    },
+    {
+      "key": "port:2",
+      "label": "F · Feed in (zone III)",
+      "unit": "mL/min",
+      "start": 1.32,
+      "lower": 0.5,
+      "upper": 3.0,
+      "optimize": true
+    },
+    {
+      "key": "step_time",
+      "label": "Switch time t*",
+      "unit": "min",
+      "start": 2.33333,
+      "lower": 1.0,
+      "upper": 4.0,
+      "optimize": true
+    }
+  ],
+  "objective": "max_feed",
+  "specs": [
+    {
+      "metric": "extract_purity",
+      "minimum": 98.0,
+      "enabled": true
+    },
+    {
+      "metric": "extract_recovery",
+      "minimum": 99.0,
+      "enabled": true
+    },
+    {
+      "metric": "raffinate_purity",
+      "minimum": 99.0,
+      "enabled": false
+    },
+    {
+      "metric": "raffinate_recovery",
+      "minimum": 99.0,
+      "enabled": true
+    }
+  ],
+  "max_zone_flow": 7.0,
+  "min_zone_flow": 0.01,
+  "max_desorbent_ratio": null,
+  "max_iterations": 40,
+  "css_tol": 1e-08,
+  "fd_step": 0.001,
+  "ftol": 1e-06,
+  "workers": 0
+}

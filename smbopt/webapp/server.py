@@ -3,23 +3,18 @@
 from __future__ import annotations
 
 import json
-import math
 import threading
 import uuid
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
-import numpy as np
-
-from smbsim import SMBConfig, ISOTHERMS
+from smbsim import ISOTHERMS
 from smbopt import (
     Problem,
     PROBLEMS,
-    problem_preset,
     OBJECTIVES,
     METRICS,
     METRIC_LABEL,
-    default_variables,
     Optimizer,
     BatchRunner,
     Cancelled,
@@ -27,6 +22,7 @@ from smbopt import (
     __version__,
 )
 from smbopt.optimizer import default_workers
+from smbopt.io import problem_from_setup, to_jsonable
 from smbopt.window import scan, henry_constants, is_classic
 
 STATIC = Path(__file__).parent / "static"
@@ -40,23 +36,7 @@ MIME = {
 }
 
 
-def _clean(o):
-    """Make results JSON-safe and compact."""
-    if isinstance(o, dict):
-        return {k: _clean(v) for k, v in o.items() if not str(k).startswith("_")}
-    if isinstance(o, (list, tuple)):
-        return [_clean(v) for v in o]
-    if isinstance(o, np.ndarray):
-        a = np.where(np.abs(o) < 1e-12, 0.0, o)
-        return _clean(np.round(a.astype(float), 7).tolist())
-    if isinstance(o, (np.floating, float)):
-        f = float(o)
-        return None if not math.isfinite(f) else round(f, 9)
-    if isinstance(o, (np.integer,)):
-        return int(o)
-    if isinstance(o, np.bool_):
-        return bool(o)
-    return o
+_clean = to_jsonable  # results are made JSON-safe the same way as by the command-line tool
 
 
 class Runner:
@@ -206,12 +186,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/from_setup":
             # an SMB Simulator setup -> problem with default decision variables, keeping the other settings
             try:
-                cfg = SMBConfig.from_dict(payload["setup"])
-                base = Problem.from_dict(payload["problem"]) if payload.get("problem") else problem_preset("case2_feed")
-                base.process = cfg.to_dict()
-                base.variables = default_variables(cfg)
-                if base.objective in ("max_feed", "min_desorbent") and not any(p.kind == "feed" for p in cfg.ports):
-                    base.objective = "max_extract_recovery"
+                base = Problem.from_dict(payload["problem"]) if payload.get("problem") else None
+                base = problem_from_setup(payload["setup"], base)
                 return self._send(200, {"problem": base.to_dict()})
             except Exception as e:
                 return self._send(400, {"errors": [f"Could not read the setup: {e}"]})
@@ -252,5 +228,6 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "not found"})
 
 
-def serve(host="127.0.0.1", port=8051):
+def serve(host: str = "127.0.0.1", port: int = 8051) -> ThreadingHTTPServer:
+    """Create (but do not start) the local web server; call ``serve_forever()`` on the result."""
     return ThreadingHTTPServer((host, port), Handler)
