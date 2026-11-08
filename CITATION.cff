@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: SMB Optimizer Suite
+message: If you use this software, please cite it using this metadata.
+type: software
+authors:
+  - given-names: Yadong (Leo)
+    family-names: Chiang
+version: 1.0.0
+license: MIT
+repository-code: https://github.com/YC-Leo/SMB-optimizer
+url: https://github.com/YC-Leo/SMB-optimizer
+date-released: 2026-11-01

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMB Optimizer Suite</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231a8a5f' stroke-width='5' stroke-dasharray='6 2.6'/%3E%3Cpath d='M11 17l4 4 7-9' fill='none' stroke='%231a8a5f' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" class="logo opt" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="5" stroke-dasharray="6 2.64"/></svg>
+    <div>
+      <div class="brand-name">SMB Optimizer Suite</div>
+      <div class="brand-sub">Best operating conditions for simulated moving bed chromatography</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span class="mode-pill" id="modePill"></span>
+    <button class="btn ghost" id="themeBtn" title="Switch light / dark theme" aria-label="Switch theme">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- ============================== SETUP ============================== -->
+  <aside class="setup" id="setup">
+    <div class="setup-scroll">
+
+    <details class="group" open>
+      <summary><span class="g-title">1 · Problem</span><span class="g-chip" id="chipProblem"></span></summary>
+      <div class="g-body">
+        <select id="presetSel" aria-label="Load an example problem"></select>
+        <p class="hint" id="presetHint"></p>
+        <div class="row">
+          <button class="btn small" id="resetBtn">Reset</button>
+          <button class="btn small" id="exportBtn">Export problem</button>
+          <label class="btn small file">Import problem<input type="file" id="importFile" accept=".json,application/json"></label>
+        </div>
+        <label class="btn small file wide-btn top-gap" title="A setup exported from the SMB Simulator Suite">Use a setup from the SMB Simulator…<input type="file" id="importSetup" accept=".json,application/json"></label>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary><span class="g-title">2 · Process</span><span class="g-chip" id="chipProcess"></span></summary>
+      <div class="g-body">
+        <div id="procSummary"></div>
+        <h3>Model</h3>
+        <div class="seg small-full" id="schemeSeg" role="radiogroup" aria-label="Numerical mode">
+          <button data-v="original" role="radio">Original mode</button>
+          <button data-v="conservative" role="radio">Conservative mode</button>
+        </div>
+        <div class="seg small-full" id="flowSeg" role="radiogroup" aria-label="Flow model">
+          <button data-v="constant" role="radio">Constant flow</button>
+          <button data-v="volume_change" role="radio">Volume change</button>
+        </div>
+        <p class="hint">Components, columns, packing and the zone layout come from the setup. Change them in the SMB Simulator, export the setup and load it here.</p>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary><span class="g-title">3 · Decision variables</span><span class="g-chip" id="chipVars"></span></summary>
+      <div class="g-body">
+        <p class="hint first">Tick what the optimizer may change. The other values stay at their start value.</p>
+        <table class="var-table" id="varTable"></table>
+        <div class="derived" id="startDerived"></div>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary><span class="g-title">4 · Objective</span><span class="g-chip" id="chipObj"></span></summary>
+      <div class="g-body">
+        <select id="objSel" aria-label="Objective"></select>
+        <p class="hint" id="objHint"></p>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary><span class="g-title">5 · Limits</span><span class="g-chip" id="chipLimits"></span></summary>
+      <div class="g-body">
+        <h3>Product specifications</h3>
+        <table class="spec-table" id="specTable"></table>
+        <h3>Flow limits</h3>
+        <div class="grid2">
+          <label class="field"><span>Largest flow in any zone</span><div class="unit"><input type="number" step="any" id="maxFlow"><i>mL/min</i></div></label>
+          <label class="field"><span>Smallest flow in any zone</span><div class="unit"><input type="number" step="any" id="minFlow"><i>mL/min</i></div></label>
+        </div>
+        <p class="hint">The largest flow stands for the pressure-drop limit; the smallest keeps every zone and the balance outlet flowing.</p>
+        <label class="check"><input type="checkbox" id="ratioOn"> Limit desorbent use</label>
+        <div class="grid2 top-gap" id="ratioRow">
+          <label class="field"><span>Desorbent / feed at most</span><input type="number" step="any" id="ratioMax"></label>
+        </div>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary><span class="g-title">6 · Solver</span><span class="g-chip" id="chipSolver"></span></summary>
+      <div class="g-body">
+        <div class="grid2">
+          <label class="field"><span>Max iterations</span><input type="number" step="1" id="maxIter"></label>
+          <label class="field"><span>Parallel processes</span><select id="workers"></select></label>
+          <label class="field"><span>Steady-state tolerance</span><input type="number" step="any" id="cssTol"></label>
+          <label class="field"><span>Gradient step</span><div class="unit"><input type="number" step="any" id="fdStep"><i>%</i></div></label>
+        </div>
+        <p class="hint">Each iteration simulates the current point and one slightly changed copy per decision variable, together, to cyclic steady state. Tighter tolerances give cleaner gradients but take longer.</p>
+      </div>
+    </details>
+    </div>
+
+    <div class="setup-actions">
+      <div class="errors" id="errors" hidden></div>
+      <button class="btn primary big" id="runBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M7 4v16l13-8z"/></svg>
+        <span>Find best operating point</span>
+      </button>
+      <div class="row tight">
+        <button class="btn big" id="scanBtn" title="Simulate a grid of (m2, m3) points and show where the specifications are met">Map the operating window</button>
+        <select id="scanN" class="scan-n" aria-label="Grid size" title="Grid size"><option value="8">8 × 8</option><option value="10" selected>10 × 10</option><option value="14">14 × 14</option></select>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================== RESULTS ============================== -->
+  <main class="results">
+    <div class="statusbar" id="statusbar">
+      <div class="status-text" id="statusText">Ready. Load a problem and press <b>Find best operating point</b>.</div>
+      <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+      <button class="btn small" id="cancelBtn" hidden>Cancel</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <section class="card">
+      <div class="card-head">
+        <div class="tabs" id="pointTabs">
+          <button data-v="window" class="on">Operating window</button>
+          <button data-v="compare">Start vs best</button>
+          <button data-v="limits">What limits it</button>
+        </div>
+        <span class="card-sub push" id="pointSub"></span>
+      </div>
+      <div id="pWindow">
+        <div class="window-row">
+          <div id="windowChart" class="chart window"></div>
+          <div class="window-side" id="windowSide"></div>
+        </div>
+      </div>
+      <div id="pCompare" hidden class="table-wrap"></div>
+      <div id="pLimits" hidden class="table-wrap"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Optimization progress</h2>
+        <div class="tabs" id="progTabs">
+          <button data-v="objective" class="on">Objective</button>
+          <button data-v="quality">Purity &amp; recovery</button>
+          <button data-v="variables">Decision variables</button>
+        </div>
+      </div>
+      <div class="legend" id="progLegend"></div>
+      <div id="progChart" class="chart"></div>
+      <p class="card-foot" id="progFoot"></p>
+    </section>
+
+    <div class="grid-2">
+      <section class="card">
+        <div class="card-head">
+          <h2>Cyclic steady state</h2>
+          <div class="seg small push" id="profSeg">
+            <button data-v="optimum" class="on">Best point</button>
+            <button data-v="start">Start</button>
+          </div>
+        </div>
+        <div class="legend" id="profLegend"></div>
+        <div id="profile" class="chart"></div>
+        <p class="card-foot">Liquid concentration along the unit at the start of a switch, seen from the ports.</p>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <h2>Where the components go</h2>
+          <div class="seg small push" id="splitSeg">
+            <button data-v="optimum" class="on">Best point</button>
+            <button data-v="start">Start</button>
+          </div>
+        </div>
+        <div id="split" class="split"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Run history</h2>
+        <span class="card-sub">Select a run to view it</span>
+        <button class="btn small push" id="setupBtn" disabled title="Open this file in the SMB Simulator Suite to watch the unit run">Download best setup for the Simulator</button>
+        <button class="btn small" id="csvBtn" disabled>Download iterations (CSV)</button>
+      </div>
+      <div class="table-wrap"><table class="runs" id="runs">
+        <thead><tr><th></th><th>Problem</th><th>Objective</th><th>Start</th><th>Best</th><th>Change</th><th>Specs met</th><th>Iterations</th><th>Simulations</th><th>Time</th></tr></thead>
+        <tbody><tr class="empty"><td colspan="10">No runs yet.</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <footer class="foot">
+      Trust-region sequential quadratic programming on the full SMB model · every evaluation is a simulation to cyclic steady state · runs entirely on this computer.
+    </footer>
+  </main>
+</div>
+
+<div class="tooltip" id="tooltip" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
