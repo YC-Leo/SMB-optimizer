@@ -176,22 +176,6 @@ assets/              screenshots
 tools/check_repo.py  content check run before every commit and in CI
 ```
 
-## How to cite
-
-If you use SMB-optimizer in your work, please cite it. GitHub shows a **Cite this repository** button built from [CITATION.cff](CITATION.cff), or you can use:
-
-```bibtex
-@software{chiang_smb_optimizer_2026,
-  author  = {Chiang, Yadong (Leo)},
-  title   = {{SMB-optimizer}: operating-condition optimizer for simulated moving bed chromatography},
-  version = {1.0.0},
-  year    = {2026},
-  url     = {https://github.com/YC-Leo/SMB-optimizer}
-}
-```
-
-If you also use the simulation model on its own, please cite [SMB-simulator](https://github.com/YC-Leo/SMB-simulator) as well.
-
 ## Contributing
 
 Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains the setup, the checks to run and the pull request workflow. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
